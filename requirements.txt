@@ -1,0 +1,7 @@
+PySide6
+pyserial
+pyaudio
+pandas
+qt-material
+darkdetect
+pyinstaller
