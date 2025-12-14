@@ -32,7 +32,7 @@ Currently, this project is in Alpha stage and is a work is progress. Not all fun
 - Zones
 
 ### Write
-- Nothing
+- Nothing Yet
 
 ## Serial Features To Implement
 - 2Tone Encode/Decode
@@ -76,7 +76,7 @@ Currently, this project is in Alpha stage and is a work is progress. Not all fun
 - Optional Settings
 
 ## Working Export Features
-- Nothing
+- Nothing Yet
 
 ## Planned Updates
 - Remaing OEM CPS features
