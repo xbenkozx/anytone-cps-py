@@ -7,7 +7,7 @@ An open-source, cross-platform Customer Programming Software (CPS) for the AnyTo
 
 This project aims to provide a modern, scriptable, and community-maintained alternative to the stock AnyTone CPS, while keeping the workflow familiar for existing users.
 
-Currently, this project is in Alpha stage and is a work is progress. Not all functionality has been added but will be updated as soon as feature become available. Only FW version 4.00 is supported. Once the CPS is in Beta, I will expand to include future FW versions as well as other Anytone radio models
+Currently, this project is in Alpha stage and is a work is progress. Not all functionality has been added but will be updated as soon as feature become available. Only FW version 4.00 is supported. Once the CPS is in Beta, I will expand to include future FW versions.
 
 > **Note**  
 > This project is not affiliated with, endorsed by, or supported by AnyTone / Qixiang. All trademarks are the property of their respective owners.
@@ -116,7 +116,7 @@ This can also be compiles to a single executable using pyinstaller and the inclu
 
 For full download and build,
 
-    git clone https://github.com/xbenkozx/anytone-878uvii-cps-py.git
+    git clone https://github.com/xbenkozx/anytone-cps-py.git
     cd anytone-878uvii-cps-py
     python -m venv .venv
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
@@ -124,6 +124,10 @@ For full download and build,
     pyinstaller D878UVII_4.00_CPS.spec
 
 The compiled executable can be found in the *dist* folder
+
+# Donations
+As this project take a quite a bit of time as well as costs to purchase new radios to be able to support them, donations are appreciated but not required.
+You can send money via paypal to k7dmg@protonmail.com.
 
 # Troubleshooting
 
