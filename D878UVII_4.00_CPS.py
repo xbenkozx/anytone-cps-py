@@ -3,7 +3,7 @@ import sys, os, darkdetect
 
 ### DEBUG
 # os.system('python build-ui.py')
-# os.system('python compile.py')
+os.system('python compile.py')
 ###
 
 
@@ -15,8 +15,6 @@ from CPS.AnytoneMemory import AnyToneMemory
 from CPS.Device import AnyToneVirtualDevice
 from PySide6.QtSerialPort import QSerialPortInfo
 from CPS.UserSettings import UserSettings
-
-
 
 if __name__ == "__main__":
     AnyToneMemory.init()

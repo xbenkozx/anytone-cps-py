@@ -7,7 +7,13 @@ class Format:
 class Bit:
     def getBit(char, index) -> bool:
         return ((char >> index) & 1) == 1
+    
     def setBit(char, index, val):
-        char += (val << index)
-        return char
+        if val == 0 or val == False:
+            mask = 1 << index
+            inverted_mask = ~mask
+            return char & inverted_mask
+        else:
+            return char | (1 << index)
+        
     

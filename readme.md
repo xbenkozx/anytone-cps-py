@@ -17,6 +17,7 @@ Currently, this project is in Alpha stage and is a work is progress. Not all fun
 ## Working Serial Features
 ### Read
 - Auto Repeater Offset Frequencies
+- Alert Settings
 - Channels
 - Digital Contacts
 - FM Channels
@@ -32,17 +33,22 @@ Currently, this project is in Alpha stage and is a work is progress. Not all fun
 - Zones
 
 ### Write
-- Nothing Yet
+- Channels
+- FM Channels
+- GPS Roaming
+- Radio IDs
+- Scan Lists
+- TalkGroups
+- Zones
 
 ## Serial Features To Implement
 - 2Tone Encode/Decode
 - 5Tone Encode/Decode
 - AES Encryption Code
-- Alert Tone
 - Analog Address Book
 - APRS
 - ARC4 Encryption Code
-- DTMF Encode
+- DTMF Encode/Decode
 - HotKey HotKey
 - HotKey Quick Call
 - HotKey State
@@ -76,7 +82,7 @@ Currently, this project is in Alpha stage and is a work is progress. Not all fun
 - Optional Settings
 
 ## Working Export Features
-- Nothing Yet
+- Nothing
 
 ## Planned Updates
 - Remaing OEM CPS features
@@ -134,3 +140,12 @@ You can send money via paypal to k7dmg@protonmail.com.
 If you are having issues where the  COM port cannot be opened, you may need to add yourself to the dialout user group.
     sudo usermod -a -G dialout <username>
 After running the command, logout then back in and the serial ports should now be accessible.
+
+# License
+anytone-878uvii-cps-py - A multi-platform GUI for Anytone D878UVII Radios.
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.

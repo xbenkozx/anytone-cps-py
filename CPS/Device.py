@@ -1,7 +1,7 @@
 from CPS.AnytoneMemory import AnyToneMemory, Channel
 from CPS.Utils import Bit
 from serial import Serial
-import time
+import time, os
 from PySide6.QtSerialPort import QSerialPort
 from PySide6.QtCore import QObject, QDeadlineTimer, Signal, QRunnable
 
@@ -66,9 +66,233 @@ class AnyToneDevice(QObject):
             print("")
         return data
     
-    def writeMemory(self, address, data):
+    def writeMemory(self, address: int, data: bytes):
+        data_len = len(data)
+        read_count = data_len/0x10
+        if self.verbose:
+            print("Writing:", hex(address), '-', hex(address + data_len))
+        for idx, addr in enumerate(range(address, address + data_len, 0x10)):
+            progress = round((idx / read_count) * 100, 0)
+            if self.verbose:
+                self.printProgress(progress)
+            self.writeMemoryAddress(addr, data[idx * 0x10: (idx * 0x10) + 0x10])
+
+        if self.verbose:
+            self.printProgress(100)
+            print("")
+        return data
+    
+    def writeRadioData(self):
+        local_info = self.readDeviceInfo()
+        if local_info[0] != 'ID878UV2' or local_info[1] != 'V101': # TODO: Update this when adding new models
+            self.finished.emit(AnyToneDevice.STATUS_DEVICE_MISMATCH)
+            return
+
+        if self.read_write_options == 1 or self.read_write_options == 3:
+            self.writeOtherData()
+        elif self.read_write_options == 2:
+            self.writeDigitalContacts()
+
+    def writeOtherData(self):
+        self.radio_write_headers = []
+        self.radio_write_data = []
+        self.writeTalkgroupData()
+        self.writeRadioIdData()
+        self.writeZoneData()
+        self.writeScanListData()
+        self.writeChannelData()
+        self.writeFMChannelData()
+        self.writeGpsRoamingData()
+
+        # self.radio_write_data.sort(key=lambda x: x[0])
+        self.update1.emit(0, len(self.radio_write_data) + 1, 'Writing Headers')
+        for i, (addr, data) in enumerate(self.radio_write_headers):
+            self.update2.emit(i, len(self.radio_write_data) + 1, 'Writing Headers')
+            self.writeMemory(addr, data)
+
+
+        for i, (desc, write_list) in enumerate(self.radio_write_data):
+            self.update1.emit(i+1, len(self.radio_write_data) + 1, 'Writing Data')
+            write_list.sort(key=lambda x: x[0])
+            for j, (addr, data) in enumerate(write_list):
+                self.update2.emit(j, len(write_list), desc)
+                self.writeMemory(addr, data)
+
+    def writeChannelData(self):
+        channel_data_offset = 0x800000
+        channel_set_list = bytearray(0x200)
+        radio_write_data = []
+        for i, ch in enumerate(AnyToneMemory.channels):
+            if ch.rx_frequency > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                channel_set_list[current_byte_idx] = Bit.setBit(channel_set_list[current_byte_idx], i%8, ch.rx_frequency > 0)
+                ch_primary_data, ch_secondary_data = ch.encode()
+
+                channel_data_block = int(i / 128)
+                primary_data_address = channel_data_offset + ((i - (channel_data_block * 128)) * 0x40) + (channel_data_block * 0x40000)
+                secondary_data_address = primary_data_address + 0x2000
+
+                radio_write_data.append((primary_data_address, ch_primary_data))
+                radio_write_data.append((secondary_data_address, ch_secondary_data))
+
+                if not self.is_alive:
+                    self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
+
+        self.radio_write_data.append(('Channel Data', radio_write_data))
+        self.radio_write_headers.append((0x24c1500, bytes(channel_set_list)))
+            
+    def writeZoneData(self):
+        zone_set_list_addr = 0x24c1300 #0x20
+        zone_names_addr = 0x2540000
+
+        zone_name_addr = 0x2540000
+        zone_channel_offset = 0x1000000
+        zone_a_channel_addr = 0x2500100
+        zone_b_channel_addr = 0x2500300
+        zone_hide_addr = 0x24c1360
+
+        zone_set_list_data = bytearray(0x20)
+        zone_name_data = bytearray([0xff]) * 0x1f40
+        zone_a_channel_data = bytearray(0x1f4)
+        zone_b_channel_data = bytearray(0x1f4)
+        zone_channel_data = bytearray([0xff]) * 0x1f400
+        zone_hide_data = bytearray(0x20)
+
+        radio_write_data = []
+        
+        for i, zone in enumerate(AnyToneMemory.zones):
+            if len(zone.channels) > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                # Zone Set
+                zone_set_list_data[current_byte_idx] = Bit.setBit(zone_set_list_data[current_byte_idx], i%8, 1)
+                # Zone Name
+                radio_write_data.append((zone_names_addr + (i * 0x20), zone.name.encode('utf-8').ljust(0x20, b'\x00')))
+                # Zone Channels
+                zone_channel_addr = (i * 0x200)
+                for ch_idx, ch in enumerate(zone.channels):
+                    zone_channel_data[zone_channel_addr + (ch_idx * 2) : zone_channel_addr + (ch_idx * 2) + 2] = ch.id.to_bytes(2, 'little')
+
+                # Zone A Channel
+                zone_a_channel_data[i * 2: (i * 2) + 2] = zone.channels.index(zone.a_channel_obj).to_bytes(2, 'little')
+                # Zone B Channel
+                zone_b_channel_data[i * 2: (i * 2) + 2] = zone.channels.index(zone.b_channel_obj).to_bytes(2, 'little')
+            else:
+                zone_a_channel_data[i * 2: (i * 2) + 2] = int(0).to_bytes(2, 'little')
+                zone_b_channel_data[i * 2: (i * 2) + 2] = int(1).to_bytes(2, 'little')
+
+            # Zone Hide
+            zone_hide_data[current_byte_idx] = Bit.setBit(zone_hide_data[current_byte_idx], i%8, zone.hide)
+
+        radio_write_data.append((zone_channel_offset, zone_channel_data))
+        radio_write_data.append((zone_a_channel_addr, zone_a_channel_data))
+        radio_write_data.append((zone_b_channel_addr, zone_b_channel_data))
+        radio_write_data.append((zone_hide_addr, zone_hide_data))
+
+        self.radio_write_data.append(('Writing Zone Data', radio_write_data))
+
+        self.radio_write_headers.append((zone_set_list_addr, bytes(zone_set_list_data)))
+
+    def writeTalkgroupData(self):
+        tg_set_list_addr = 0x2640000
+        tg_data_list_addr = 0x2680000
+        tg_set_list_data = bytearray([0xff]) * 0x4e3
+        tg_data = b''
+
+        for i, tg in enumerate(AnyToneMemory.talkgroups):
+            current_byte_idx = int((i - (i % 8))/8)
+            tg_set_list_data[current_byte_idx] = Bit.setBit(tg_set_list_data[current_byte_idx], i % 8, tg.tg_dmr_id == 0) # This one you have to inverse if the tg exists
+            if tg.tg_dmr_id > 0:
+                tg_data += tg.encode()
+
+        # Pad out tg data for alignment
+        tg_data = tg_data.ljust((len(tg_data) + 0x10 - (len(tg_data) % 0x10)), b'\x00')
+        tg_set_list_data = tg_set_list_data.ljust(0x4f0, b'\x00')
+
+        self.radio_write_headers.append((tg_set_list_addr, tg_set_list_data))
+        self.radio_write_data.append(('TalkGroup Data', [(tg_data_list_addr, tg_data)]))
+
+    def writeRadioIdData(self):
+        radio_write_data = []
+        radio_id_set_list_addr = 0x24c1320 #0x20
+        radio_id_set_list = bytearray(0x20)
+        radio_id_data_addr = 0x2580000
+
+        for i, rid in enumerate(AnyToneMemory.radioid_list):
+            if rid.dmr_id > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                radio_id_set_list[current_byte_idx] = Bit.setBit(radio_id_set_list[current_byte_idx], i % 8, True)
+                radio_write_data.append((radio_id_data_addr + (i * 0x20), rid.encode()))
+
+        self.radio_write_data.append(('Radio ID Data', radio_write_data))
+        self.radio_write_headers.append((radio_id_set_list_addr, bytes(radio_id_set_list)))
+
+    def writeScanListData(self):
+        radio_write_data = []
+        scan_list_set_list_addr = 0x24c1340 #0x20
+        scan_list_data_addr = 0x1080000
+        scan_list_set_data = bytearray(0x20)
+
+        for i, sl in enumerate(AnyToneMemory.scanlist):
+            if len(sl.channels) > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                scan_list_set_data[current_byte_idx] = Bit.setBit(scan_list_set_data[current_byte_idx], i % 8, True)
+                radio_write_data.append((scan_list_data_addr + (i * 0x200), sl.encode()))
+
+        self.radio_write_data.append(('Scan List Data', radio_write_data))
+        self.radio_write_headers.append((scan_list_set_list_addr, bytes(scan_list_set_data)))
+
+    def writeFMChannelData(self):
+        fm_active_scan_addr = 0x2480200
+        fm_data = bytearray(0x30)
+        fm_freq_data = bytearray([0xff]) * 0x190
+
+        for i, fm in enumerate(AnyToneMemory.fm_channels[:-1]):
+            current_byte_idx = int((i - (i % 8))/8)
+
+            # Active Set
+            fm_data[0x10 + current_byte_idx] = Bit.setBit(fm_data[0x10 + current_byte_idx], i%8, fm.frequency != 0)
+
+            # Scan/Add Set
+            fm_data[0x20 + current_byte_idx] = Bit.setBit(fm_data[0x20 + current_byte_idx], i%8, fm.scan_add and fm.frequency > 0)
+
+            fm_freq_data[i*4: (i*4) + 4] = bytearray(bytes.fromhex(str(fm.frequency).rjust(8,'0')))
+            
+        for l in range(0, len(fm_freq_data), 16):
+            lb = fm_freq_data[l: l + 16]
+            if lb == bytes(16):
+                fm_freq_data[l: l + 16] = (bytearray([0xff]) * 16)
+
+        # VFO
+        vfo = AnyToneMemory.fm_channels[-1]
+        fm_data[0:4] = bytearray(bytes.fromhex(str(vfo.frequency).rjust(8,'0')))
+
+        radio_write_data = []
+        radio_write_data.append((fm_active_scan_addr, fm_data))
+        # radio_write_data.append((0x2480000, fm_freq_data))
+
+        
+
+        self.radio_write_data.append(('FM Data', radio_write_data))
+
+    def writeDigitalContacts(self):
         pass
     
+    def writeGpsRoamingData(self):
+        radio_write_data = []
+        
+
+        for gps_idx in range(32):
+            self.update2.emit(gps_idx, 32, 'Reading GPS Roaming')
+            gps_addr = 0x2504000 + ((gps_idx % 16) * 0x20)
+            if gps_idx >= 16:
+                gps_addr += 0x10
+            gps_data = AnyToneMemory.gps_roaming_list[gps_idx].encode()
+            radio_write_data.append((gps_addr, gps_data))
+
+        # radio_write_data.append((0x2504000, gps_roaming_data))
+        self.radio_write_data.append(('GPS Roaming Data', radio_write_data))
+            
+
     def readRadioData(self):
         
         local_info = self.readDeviceInfo()
@@ -208,15 +432,15 @@ class AnyToneDevice(QObject):
         radioid_set_data = self.readMemory(0x24c1320, 0x20) # Radio ID Set List = 1
         scanlist_set_data = self.readMemory(0x24c1340, 0x20) # Scan List Set List = 1
         # data_13 = self.readMemory(0x24c1360, 0x20) # ? Set List = 1
-        # data_14 = self.readMemory(0x24c1400, 0x20) # 
-        # data_15 = self.readMemory(0x24c1440, 0x30) # 
+        data_14 = self.readMemory(0x24c1400, 0x20) # Alarm Settings 
+        data_15 = self.readMemory(0x24c1440, 0x30) # Alarm Settings 
         channel_set_data = self.readMemory(0x24c1500, 0x200) # Channels Exist = 1
         # data_16 = self.readMemory(0x24c1700, 0x40) #
         # data_17 = self.readMemory(0x24c1800, 0x500) # 
         auto_repeater_offset_data = self.readMemory(0x24c2000, 0x3f0) # Auto Repeater Offset Frequencies
         # data_19 = self.readMemory(0x24c2600, 0x10) # 
         # data_20 = self.readMemory(0x24c4000, 0x4000) # 
-        optional_settings_data_0000 = self.readMemory(0x2500000, 0xf0) # Optional Settings
+        optional_settings_data_0000 = self.readMemory(0x2500000, 0xf0) # Optional Settings / Alarm Settings
         # data_22 = self.readMemory(0x2500100, 0x500) #
         optional_settings_data_0600 = self.readMemory(0x2500600, 0x30) # Optional Settings
         # data_23 = self.readMemory(0x2501000, 0x240) # 
@@ -258,6 +482,8 @@ class AnyToneDevice(QObject):
         # data_56 = self.readMemory(0x2540000, 0x100) # Zone Names
         # data_57 = self.readMemory(0x2580000, 0x40) #
         # data_58 = self.readMemory(0x2680000, 0x1650) #
+
+        self.readAlarmSettings(optional_settings_data_0000, data_14, data_15)
         
 
         AnyToneMemory.optional_settings.decode(optional_settings_data_0000, optional_settings_data_0600, optional_settings_data_1280, optional_settings_data_1400)
@@ -569,6 +795,9 @@ class AnyToneDevice(QObject):
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.prefabricated_sms_list[idx].decode(sms_data)
 
+    def readAlarmSettings(self, data_0000: bytes, data_1400: bytes, data_1440: bytes):
+        AnyToneMemory.alarm_settings.decode(data_0000, data_1400, data_1440)
+
 class AnyToneVirtualDevice(AnyToneDevice):
     verbose = False
     serial_port = None
@@ -609,6 +838,11 @@ class AnyToneVirtualDevice(AnyToneDevice):
     def readMemoryAddress(self, address, length):
         data = self.bin_data[address: address + length]
         return [data, len(data)]
+
+    def writeMemoryAddress(self, address, data: bytes):
+        if type(self.bin_data) == bytes:
+            self.bin_data = bytearray(self.bin_data)
+        self.bin_data[address: address + len(data)] = bytearray(data)
 
     def readSerial(self):
         if self.serial_port == None:
@@ -1105,6 +1339,8 @@ class AnyToneSerialWorker(QRunnable):
     read_write_options: int = 0
     comport = None
     connection_attempt = 0
+    is_write = False
+
     def setComport(self, comport: str):
         self.comport = comport
 
@@ -1125,7 +1361,10 @@ class AnyToneSerialWorker(QRunnable):
             while(not self.radio_device.is_alive and self.connection_attempt < 5):
                 self.connection_attempt += 1
                 if self.radio_device.connect(self.comport):
-                    self.radio_device.readRadioData()
+                    if self.is_write:
+                        pass
+                    else:
+                        self.radio_device.readRadioData()
                     if self.radio_device.is_alive:
                         self.radio_device.endProgMode()
                 if not self.radio_device.is_alive:
@@ -1143,5 +1382,10 @@ class AnyToneSerialWorker(QRunnable):
             self.radio_device.update2.connect(self.signals.update2)
             self.radio_device.finished.connect(self.signals.finished)
             self.radio_device.loadBin(self.bin_file)
-            self.radio_device.readRadioData()
+            if self.is_write:
+                self.radio_device.writeRadioData()
+                with open(os.path.join('CPS Debug', 'saved.bin'), 'wb') as f:
+                    f.write(self.radio_device.bin_data)
+            else:
+                self.radio_device.readRadioData()
             self.signals.finished.emit(AnyToneDevice.STATUS_SUCCESS)

@@ -11,6 +11,7 @@ class Constants:
     FW_CPS_VERSION = "4.00"
     FW_CPS_VERSION_MODIFIER = 'Alpha'
     RADIO_VERSION = 'V101'
+    HW_IDS = {'28e9:018a': 'D878UVII'}
     OFF_ON = ['Off', 'On']
     VF_MR = ['MEM', 'VFO']
     AT_OPTIONS = [
@@ -399,7 +400,148 @@ class Constants:
     ROAMING_CHANNEL_SLOT = ['Slot1', 'Slot2', 'No Use']
     #FM
     FM_SCAN = ['Del', 'Add']
+    #Alarm Settings
+    ANALOG_EMERGENCY_ALARM = [
+        'Alarm', 
+        'Transpond+Background',
+        'Transpond+Alarm',
+        'Both'
+    ]
+    ANALOG_EMERGENCY_ENI_SELECT = [
+        'None',
+        'DTMF',
+        '5Tone'
+    ]
+    ALARM_DURATION = [str(i+1) for i in range(254)]
+    ENI_SEND_SELECT = ['Assigned Channel', 'Selected Channel']
+    WORK_ALONE_VOICE_SWITCH = [str(i+1) + 'm' for i in range(255)]
+    WORK_ALONE_AREA_SWITCH = [str(i+1) + 's' for i in range(255)]
+    WORK_ALONE_MIC_SWITCH = ['Key', 'Voice Transmit']
+    DIGITAL_EMERGENCY_ALARM = [
+        'Alarm', 
+        'Transpond+Background',
+        'Transpond+NoLocalAlarm',
+        'Transpond+LocalAlarm'
+    ]
+    MAN_DOWN_DELAY = [str(i) for i in range(255)]
 
+class AesEncryptionCode:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class AlarmSettings:
+    def __init__(self):
+        self.analog_emergency_alarm: int = 0
+        self.analog_eni_type: int = 0
+        self.analog_emergency_id: int = 0
+        self.analog_alarm_time: int = 0
+        self.analog_tx_duration: int = 0
+        self.analog_rx_duration: int = 0
+        self.analog_eni_send: int = 0
+        self.analog_emergency_channel: int = 0
+        self.analog_emergency_cycle: int = 0
+        self.work_mode_voice_switch: int = 0
+        self.work_mode_area_switch: int = 0
+        self.work_mode_mic_switch: int = 0
+        self.digital_emergency_alarm: int = 0
+        self.digital_alarm_time: int = 0
+        self.digital_tx_duration: int = 0
+        self.digital_rx_duration: int = 0
+        self.digital_eni_send: int = 0
+        self.digital_emergency_channel: int = 0
+        self.digital_emergency_cycle: int = 0
+        self.digital_tg_dmr_id: int = 0
+        self.digital_call_type: int = 0
+        self.receive_alarm: bool = False
+        self.man_down: bool = False
+        self.man_down_delay: int = 0
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data: bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data_0000: bytes, data_1400: bytes, data_1440: bytes):
+        self.analog_emergency_alarm = data_1400[0x0]
+        self.analog_eni_type = data_1400[0x1]
+        self.analog_emergency_id = data_1400[0x2]
+        self.analog_alarm_time = data_1400[0x3]
+        self.analog_tx_duration = data_1400[0x4]
+        self.analog_rx_duration = data_1400[0x5]
+        self.analog_eni_send = data_1400[0x8]
+        self.analog_emergency_channel = data_1400[0x6]
+        self.analog_emergency_cycle = data_1400[0x9]
+        self.work_mode_voice_switch = data_1400[0x12]
+        self.work_mode_area_switch = data_1400[0x13]
+        self.work_mode_mic_switch = data_1400[0x14]
+        self.digital_emergency_alarm = data_1400[0xa]
+        self.digital_alarm_time = data_1400[0xb]
+        self.digital_tx_duration = data_1400[0xc]
+        self.digital_rx_duration = data_1400[0xd]
+        self.digital_eni_send = data_1400[0x10]
+        self.digital_emergency_channel = data_1400[0xe]
+        self.digital_emergency_cycle = data_1400[0x11]
+        self.digital_tg_dmr_id = int(data_1440[0x23:0x27].hex())
+        self.digital_call_type = data_1440[0x0]
+        self.receive_alarm = data_1400[0x15]
+        self.man_down = data_0000[0x24]
+        self.man_down_delay = data_0000[0x4f]
+class AnalogAddressBookItem:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class AnalogAlarmSettings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class AprsSettings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class Arc4EncryptionCode:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
 class AutoRepeaterOffsetFrequency:
     struct_format = '<'
     def __init__(self):
@@ -444,7 +586,7 @@ class Channel:
         self.ptt_id : int = 0
         self.optional_signal : int = 0
         self.busy_lock : int = 0
-        self.scan_list : int = 0
+        self.scan_list_idx : int = 0
         self.tone2_id_idx : int = 0
         self.tone5_id_idx : int = 0
         self.dtmf_id_idx : int = 0
@@ -482,7 +624,7 @@ class Channel:
         # TODO: Implement
         self.digital_encryption: int = 0
         # CPS Data Object
-        self.scan_list: ScanList = ScanList()
+        self.scan_list: ScanList = None
         self.talkgroup_obj: TalkGroup = TalkGroup()
         self.radioid_obj: RadioID = RadioID()
         self.scan_list_name = None
@@ -492,8 +634,8 @@ class Channel:
         self.temp_radio_id = ''
     def clear(self):
         self.id: int = -1
-        self.rx_frequency : str = 0
-        self.offset : str = 0
+        self.rx_frequency : int = 0
+        self.offset : int = 0
         self.offset_direction: int = 0
         self.correct_frequency: int = 0
         self.band_width : int = 0
@@ -514,7 +656,7 @@ class Channel:
         self.ptt_id : int = 0
         self.optional_signal : int = 0
         self.busy_lock : int = 0
-        self.scan_list : int = 0
+        self.scan_list_idx : int = 0
         self.tone2_id_idx : int = 0
         self.tone5_id_idx : int = 0
         self.dtmf_id_idx : int = 0
@@ -591,7 +733,7 @@ class Channel:
             self.receive_group_call_list_idx = self.receive_group_list.id
         else:
             self.receive_group_call_list_idx = 0xff
-        data = struct.pack(self.struct_format,
+        data = struct.pack('>H16sIBI6B3?B?BBBB?',
             # Common H16sIBI6B3?B?BBBB?
             self.id,
             self.name.encode('utf-8'),
@@ -602,7 +744,7 @@ class Channel:
             self.band_width,
             self.tx_power,
             self.busy_lock,
-            self.scan_list,
+            self.scan_list_idx,
             self.channel_type,
             self.talkaround,
             self.call_confirmation,
@@ -746,7 +888,7 @@ class Channel:
             self.ptt_id = primary_data[25] & 0x3
             self.optional_signal = (primary_data[26] >> 4) & 0x3
             self.busy_lock = primary_data[26] & 0x3
-            self.scan_list = primary_data[27]
+            self.scan_list_idx = primary_data[27]
             self.receive_group_call_list_idx = primary_data[28]
             self.tone2_id_idx = primary_data[29]
             self.tone5_id_idx = primary_data[30]
@@ -760,7 +902,7 @@ class Channel:
             self.sms_confirmation = Bit.getBit(primary_data[33], 0)
             self.aes_encryption_idx = primary_data[34]
             self.name = primary_data[35:51].decode('utf-8').rstrip('\x00')
-            self.autoscan = Bit.getBit(primary_data[52], 4)
+            self.auto_scan = Bit.getBit(primary_data[52], 4)
             self.data_ack_disable = Bit.getBit(primary_data[52], 3)
             self.exclude_channel_roaming = Bit.getBit(primary_data[52], 2)
             self.dmr_mode = Bit.getBit(primary_data[52], 1)
@@ -775,7 +917,7 @@ class Channel:
             self.send_talker_alias = Bit.getBit(primary_data[59], 4)
             self.analog_aprs_mute = Bit.getBit(primary_data[59], 3)
             self.sms_forbid = Bit.getBit(primary_data[59], 2)
-            self.aes_random_key = Bit.getBit(primary_data[59], 1)
+            self.random_key = Bit.getBit(primary_data[59], 1)
             self.aes_multiple_key = Bit.getBit(primary_data[59], 0)
             self.analog_aprs_report_frequency_idx = primary_data[60]
             self.arc4_encryption_key_idx = primary_data[61]
@@ -784,28 +926,38 @@ class Channel:
                 self.r5tone_bot = secondary_data[0]
                 self.r5tone_eot = secondary_data[1]
                 self.tx_color_code_idx = secondary_data[3]
-        if self.id == 0:
-            self.decodeStruct(self.encodeStruct())
+        # if self.id == 0:
+        #     self.decodeStruct(self.encodeStruct())
     def encode(self):
+        # Receive Group Call List
         if self.receive_group_list != None:
             self.receive_group_call_list_idx = self.receive_group_list.id
         else:
             self.receive_group_call_list_idx = 0xff
+        # Scan List
+        if self.scan_list != None:
+            self.scan_list_idx = self.scan_list.id
+        else:
+            self.scan_list_idx = 0xff
+        # Talkgroup
+        self.contact = self.talkgroup_obj.id
+        # Radio ID
+        self.radio_id_idx = self.radioid_obj.id
         # Primary Channel Data
         primary_data = bytearray(64)
-        primary_data[0:4] = bytearray(bytes.fromhex(str(self.rx_frequency)))
+        primary_data[0:4] = bytearray(bytes.fromhex(str(self.rx_frequency).rjust(8,'0')))
         primary_data[4:8] = bytearray(bytes.fromhex(str(self.offset).rjust(8,'0')))
         primary_data[8] = (self.offset_direction << 6) + (self.band_width << 4) + (self.tx_power << 2) + self.channel_type
         primary_data[9] = Bit.setBit(primary_data[9], 7, self.talkaround)
         primary_data[9] = Bit.setBit(primary_data[9], 6, self.call_confirmation)
         primary_data[9] = Bit.setBit(primary_data[9], 5, self.ptt_prohibit)
         primary_data[9] = Bit.setBit(primary_data[9], 4, self.reverse)
-        primary_data[9] = Bit.setBit(primary_data[9], 2, self.ctcss_dcs_encode)
-        primary_data[9] = Bit.setBit(primary_data[9], 0, self.ctcss_dcs_decode)
+        primary_data[9] += (self.ctcss_dcs_encode & 0x3) << 2
+        primary_data[9] += self.ctcss_dcs_decode & 0x3
         primary_data[10] = self.ctcss_encode_tone
         primary_data[11] = self.ctcss_decode_tone
-        primary_data[12] = self.dcs_encode_idx
-        primary_data[14] = self.dcs_decode_idx
+        primary_data[12] = self.dcs_encode_tone
+        primary_data[14] = self.dcs_decode_tone
         primary_data[16] = 0xcf
         primary_data[17] = 0x09
         primary_data[18] = self.tone2_decode
@@ -815,7 +967,7 @@ class Channel:
         primary_data[25] = Bit.setBit(primary_data[25], 0, self.ptt_id)
         primary_data[26] = Bit.setBit(primary_data[26], 4, self.optional_signal)
         primary_data[26] = Bit.setBit(primary_data[26], 0, self.busy_lock)
-        primary_data[27] = self.scan_list
+        primary_data[27] = self.scan_list_idx
         primary_data[28] = self.receive_group_list_idx
         primary_data[29] = self.tone2_id_idx
         primary_data[30] = self.tone5_id_idx
@@ -829,7 +981,7 @@ class Channel:
         primary_data[33] = Bit.setBit(primary_data[33], 0, self.sms_confirmation)
         primary_data[34] = self.aes_encryption_idx
         primary_data[35:51] = bytearray(self.name.encode('utf-8').ljust(16, b'\x00'))
-        primary_data[52] = Bit.setBit(primary_data[52], 4, self.autoscan)
+        primary_data[52] = Bit.setBit(primary_data[52], 4, self.auto_scan)
         primary_data[52] = Bit.setBit(primary_data[52], 3, self.data_ack_disable)
         primary_data[52] = Bit.setBit(primary_data[52], 2, self.exclude_channel_roaming)
         primary_data[52] = Bit.setBit(primary_data[52], 1, self.dmr_mode)
@@ -844,7 +996,7 @@ class Channel:
         primary_data[59] = Bit.setBit(primary_data[59], 4, self.send_talker_alias)
         primary_data[59] = Bit.setBit(primary_data[59], 3, self.analog_aprs_mute)
         primary_data[59] = Bit.setBit(primary_data[59], 2, self.sms_forbid)
-        primary_data[59] = Bit.setBit(primary_data[59], 1, self.aes_random_key)
+        primary_data[59] = Bit.setBit(primary_data[59], 1, self.random_key)
         primary_data[59] = Bit.setBit(primary_data[59], 0, self.aes_multiple_key)
         primary_data[60] = self.analog_aprs_report_frequency_idx
         primary_data[61] = self.arc4_encryption_key_idx
@@ -854,6 +1006,18 @@ class Channel:
         secondary_data[1] = self.r5tone_eot
         secondary_data[3] = self.tx_color_code_idx
         return bytes(primary_data), bytes(secondary_data)
+class DTMFSettings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
 class DigitalContact:
     struct_format = '<'
     def __init__(self):
@@ -943,11 +1107,13 @@ class FM:
     def __init__(self):
         self.id: int = 0
         self.frequency: int = 0
-        self.scan_add: bool = False
+        self.scan_add: bool = True
     def getFrequencyDecimal(self) -> Decimal:
         return Decimal(self.frequency) / 10000
     def getFrequencyStr(self):
         return format(f'{self.getFrequencyDecimal():.2f}')
+    def setFrequencyStr(self, freq_str: str):
+        self.frequency = int(Decimal(freq_str) * 10000)
     def encodeStruct(self):
         return struct.pack(self.struct_format, 
                            self.id,
@@ -990,7 +1156,21 @@ class GpsRoaming:
         self.long_minute = data[7]
         self.long_minute_decimal = data[8]
         self.east_west = data[9]
-        self.radius = int.from_bytes(data[10:14], 'big')
+        self.radius = int.from_bytes(data[12:16], 'little')
+    def encode(self) -> bytes:
+        data = bytearray(0x10)
+        data[0] = self.enabled
+        data[1] = self.zone_idx
+        data[2] = self.lat_degree
+        data[3] = self.lat_minute
+        data[4] = self.lat_minute_decimal
+        data[5] = self.north_south
+        data[6] = self.long_degree
+        data[7] = self.long_minute
+        data[8] = self.long_minute_decimal
+        data[9] = self.east_west
+        data[12:16] = self.radius.to_bytes(4, 'little')
+        return data
 class MasterRadioId:
     def __init__(self):
         self.dmr_id: int = 0
@@ -1506,8 +1686,13 @@ class RadioID:
         self.dmr_id = fdata[1]
         self.name = fdata[2].decode('utf-8').rstrip('\x00')
     def decode(self, data: bytes):
-        self.dmr_id = int.from_bytes(data[0:4], 'big')
-        self.name = data[5:0x1b].decode('utf-8').rstrip('\x00')
+        self.dmr_id = int(data[:4].hex())
+        self.name = data[5:0x1f].decode('utf-8').rstrip('\x00')
+    def encode(self) -> bytes:
+        data = bytearray(0x20)
+        data[0:4] = bytearray(bytes.fromhex(str(self.dmr_id).rjust(8,'0')))
+        data[5:0x1f] = self.name.encode('utf-8').ljust(26, b'\x00')
+        return bytes(data)
 class ReceiveGroupCallList:
     def __init__(self):
         self.id: int = 0
@@ -1650,6 +1835,35 @@ class ScanList:
             ch_idx = int.from_bytes(data[0x1f + i: 0x1f + i + 2], 'big')
             if ch_idx != 0xffff:
                 self.temp_member_channels.append(ch_idx)
+    def encode(self) -> bytes:
+        data = bytearray(0x1e)
+        data[0x1] = self.priority_channel_select
+        data[0x2:0x4] = self.priority_channel_1.to_bytes(2, 'little')
+        data[0x4:0x6] = self.priority_channel_2.to_bytes(2, 'little')
+        data[0x6:0x8] = (self.look_back_time_a + 5).to_bytes(2, 'little')
+        data[0x8:0xa] = (self.look_back_time_b + 5).to_bytes(2, 'little')
+        data[0xa:0xc] = (self.dropout_delay_time + 1).to_bytes(2, 'little')
+        data[0xc:0xe] = (self.dwell_time + 1).to_bytes(2, 'little')
+        data[0xe:0xf] = (self.revert_channel).to_bytes(2, 'little')
+        data[0xf:0x1f] = self.name.encode('utf-8').ljust(0x10, b'\x00')
+        channel_data = bytearray([0xff]) * 0x65
+        for i, ch in enumerate(self.channels):
+            if i < 100:
+                channel_data[(i*2):(i*2) + 2] = ch.id.to_bytes(2, 'big')
+        data += channel_data + bytearray(0xc)
+        return data
+class TalkAliasSettings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
 class TalkGroup:
     struct_format = '<HIB16sB'
     def __init__(self, primary_data : bytes = None, secondary_data : bytes = None):
@@ -1679,6 +1893,73 @@ class TalkGroup:
         self.name = data[0x1:0x11].decode('utf-8').rstrip('\x00')
         self.call_alert = int(data[0x22])
         self.tg_dmr_id = int.from_bytes(data[0x23:0x27], 'big')
+    def encode(self) -> bytes:
+        data = bytearray(0x64)
+        data[0] = self.call_type
+        data[0x1:0x11] = self.name.encode('utf-8').ljust(0x10, b'\x00')
+        data[0x22] = self.call_alert
+        data[0x23:0x27] = self.tg_dmr_id.to_bytes(4, 'big')
+        return data
+class Tone2FrequencyDecodeItem:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class Tone2FrequencyEncodeItem:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class Tone2Settings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class Tone5EncodeItem:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
+class Tone5Settings:
+    struct_format = ''
+    def __init__(self):
+        pass
+    def encodeStruct(self) -> bytes:
+        pass
+    def decodeStruct(self, data:bytes):
+        pass
+    def encode(self) -> bytes:
+        pass
+    def decode(self, data:bytes):
+        pass
 class Zone:
     struct_format = '<B16s?3I'
     def __init__(self):
@@ -1700,8 +1981,8 @@ class Zone:
         self.b_channel : int = 0
         self.channel_count: int = 0
         self.channels.clear()
-        self.a_channel_obj = Channel()
-        self.b_channel_obj = Channel()
+        self.a_channel_obj = None
+        self.b_channel_obj = None
         self.temp_member_channels = []
         self.temp_member_idx = []
     def encodeStruct(self):
@@ -1748,6 +2029,7 @@ class AnyToneMemory:
     prefabricated_sms_list: list[PrefabricatedSMS] = []
     auto_repeater_freq_list: list[AutoRepeaterOffsetFrequency] = []
     gps_roaming_list: list[GpsRoaming] = []
+    alarm_settings: AlarmSettings = None
     # Device Information
     radio_model: str = 'D878UVII'
     radio_band: str = 'UHF{400 - 480 MHz}\nVHF{136 - 174 MHz}'
@@ -1768,6 +2050,7 @@ class AnyToneMemory:
         AnyToneMemory.iniPrefabricatedSMS()
         AnyToneMemory.initAutoRepeaterOffsetFrequencies()
         AnyToneMemory.initGpsRoaming()
+        AnyToneMemory.initAlarmSettings()
         AnyToneMemory.setDefaults()
     def initChannels():
         AnyToneMemory.channels.clear()
@@ -1849,6 +2132,8 @@ class AnyToneMemory:
             gps = GpsRoaming()
             gps.id = i
             AnyToneMemory.gps_roaming_list.append(gps)
+    def initAlarmSettings():
+        AnyToneMemory.alarm_settings = AlarmSettings()
     def setDefaults():
         # TODO
         # Common
