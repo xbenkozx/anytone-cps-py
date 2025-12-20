@@ -1232,7 +1232,7 @@ class MasterRadioId:
         data = bytearray(0x20)
         data[0:4] = bytearray(bytes.fromhex(str(self.dmr_id).rjust(8,'0')))
         data[4] = self.used
-        data[5:0x20] = self.name.encode('utf-8').ljust(26, b'\x00')
+        data[5:0x20] = self.name.encode('utf-8').ljust(27, b'\x00')
         return bytes(data)
     def decode(self, data: bytes):
         self.dmr_id = int(data[0:4].hex())

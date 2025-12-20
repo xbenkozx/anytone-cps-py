@@ -113,13 +113,13 @@ class AnyToneDevice(QObject):
         self.writeZoneData()
         self.writeScanListData()
         self.writeChannelData()
-        self.writeFMChannelData()
-        self.writeGpsRoamingData()
-        self.writeAutoRepeaterFrequencyData()
-        self.writeRoamingChannelData()
-        self.writeRoamingZoneData()
-        self.writeSettingsData()
-        self.writeMasterRadioIdData()
+        # self.writeFMChannelData()
+        # self.writeGpsRoamingData()
+        # self.writeAutoRepeaterFrequencyData()
+        # self.writeRoamingChannelData()
+        # self.writeRoamingZoneData()
+        # self.writeSettingsData()
+        # self.writeMasterRadioIdData()
 
         # self.radio_write_data.sort(key=lambda x: x[0])
         self.update1.emit(0, len(self.radio_write_data) + 1, 'Writing Headers')
@@ -132,6 +132,8 @@ class AnyToneDevice(QObject):
             self.update1.emit(i+1, len(self.radio_write_data) + 1, 'Writing Data')
             write_list.sort(key=lambda x: x[0])
             for j, (addr, data) in enumerate(write_list):
+                if desc == 'Writing Zone Data':
+                    print(desc, hex(addr), hex(len(data)))
                 self.update2.emit(j, len(write_list), desc)
                 self.writeMemory(addr, data)
 
@@ -170,9 +172,9 @@ class AnyToneDevice(QObject):
 
         zone_set_list_data = bytearray(0x20)
         zone_name_data = bytearray([0xff]) * 0x1f40
-        zone_a_channel_data = bytearray(0x1f4)
-        zone_b_channel_data = bytearray(0x1f4)
-        zone_channel_data = bytearray([0xff]) * 0x1f400
+        zone_a_channel_data = bytearray(0x200)
+        zone_b_channel_data = bytearray(0x200)
+        # zone_channel_data = bytearray([0xff]) * 0x1000
         zone_hide_data = bytearray(0x20)
 
         radio_write_data = []
@@ -185,9 +187,12 @@ class AnyToneDevice(QObject):
                 # Zone Name
                 radio_write_data.append((zone_names_addr + (i * 0x20), zone.name.encode('utf-8').ljust(0x20, b'\x00')))
                 # Zone Channels
-                zone_channel_addr = (i * 0x200)
+                zone_channel_data = bytearray([0xff]) * 0x200
                 for ch_idx, ch in enumerate(zone.channels):
-                    zone_channel_data[zone_channel_addr + (ch_idx * 2) : zone_channel_addr + (ch_idx * 2) + 2] = ch.id.to_bytes(2, 'little')
+                    zone_channel_data[ch_idx * 2: (ch_idx * 2) + 2] = ch.id.to_bytes(2, 'little')
+
+                radio_write_data.append((zone_channel_offset + (i * 0x200), zone_channel_data))
+                
 
                 # Zone A Channel
                 zone_a_channel_data[i * 2: (i * 2) + 2] = zone.channels.index(zone.a_channel_obj).to_bytes(2, 'little')
@@ -200,7 +205,7 @@ class AnyToneDevice(QObject):
             # Zone Hide
             zone_hide_data[current_byte_idx] = Bit.setBit(zone_hide_data[current_byte_idx], i%8, zone.hide)
 
-        radio_write_data.append((zone_channel_offset, zone_channel_data))
+        # radio_write_data.append((zone_channel_offset, zone_channel_data))
         radio_write_data.append((zone_a_channel_addr, zone_a_channel_data))
         radio_write_data.append((zone_b_channel_addr, zone_b_channel_data))
         radio_write_data.append((zone_hide_addr, zone_hide_data))
@@ -646,8 +651,6 @@ class AnyToneDevice(QObject):
 
         # Unknown
         data_1400[0x6f] = AnyToneMemory.optional_settings.data_250146f
-
-
 
         radio_write_data = []
         radio_write_data.append((data_0000_addr, data_0000))
@@ -1210,6 +1213,9 @@ class AnyToneVirtualDevice(AnyToneDevice):
         return [data, len(data)]
 
     def writeMemoryAddress(self, address, data: bytes):
+        if len(data) % 16 != 0:
+            print('Error: Memory Alignment', hex(address), hex(len(data)))
+
         if type(self.bin_data) == bytes:
             self.bin_data = bytearray(self.bin_data)
         self.bin_data[address: address + len(data)] = bytearray(data)
@@ -1479,6 +1485,7 @@ class AnyToneSerial(AnyToneDevice):
     def writeMemoryAddress(self, address, data):
         if len(data) % 16 != 0:
             print('Error: Memory Alignment')
+            return
 
         num_bytes_left = len(data)
         dataptr = 0
@@ -1487,11 +1494,11 @@ class AnyToneSerial(AnyToneDevice):
         
             num_bytes = min(num_bytes_left, self.max_bytes_per_write_message)
             
-            while num_bytes_left < self.max_bytes_per_write_message:
-                # pad with zeros to reach at least 16 bytes per message
-                data.append(0)
-                num_bytes_left += 1
-                num_bytes += 1
+            # while num_bytes_left < self.max_bytes_per_write_message:
+            #     # pad with zeros to reach at least 16 bytes per message
+            #     data.append(0)
+            #     num_bytes_left += 1
+            #     num_bytes += 1
                 
             writecmd = bytearray()
             writecmd.append( ord('W') )
@@ -1509,16 +1516,11 @@ class AnyToneSerial(AnyToneDevice):
             checksum = sum(writecmd[1:]) & 0xff
             writecmd.append( checksum )
             writecmd.append( 0x06 )
-            
-            self.printDebugMessage(writecmd)
 
             self.serial_port.write(writecmd)
         
             # read answer
-            answ = bytearray()
-            answ.append( ord(self.serial_port.read()) )
-            while self.serial_port.in_waiting > 0:
-                answ.append( ord(self.serial_port.read()) )
+            answ = self.read_blocking()
             
             if answ[0] == 0x06:
                 # ack received, ok
@@ -1560,8 +1562,6 @@ class AnyToneSerial(AnyToneDevice):
             writecmd.append( checksum )
             writecmd.append( 0x06 )
             
-            
-            self.printDebugMessage(writecmd)
 
             self.serial_port.write(writecmd)
         
@@ -1656,13 +1656,15 @@ class AnyToneSerialWorker(QRunnable):
                 self.connection_attempt += 1
                 if self.radio_device.connect(self.comport):
                     if self.is_write:
-                        pass
+                        self.radio_device.writeRadioData()
                     else:
                         self.radio_device.readRadioData()
                     if self.radio_device.is_alive:
                         self.radio_device.endProgMode()
                 if not self.radio_device.is_alive:
                     time.sleep(1)
+            
+            self.radio_device.closeDevice()
 
             if self.radio_device.is_alive:
                 self.signals.finished.emit(AnyToneDevice.STATUS_SUCCESS)
@@ -1684,3 +1686,7 @@ class AnyToneSerialWorker(QRunnable):
             else:
                 self.radio_device.readRadioData()
             self.signals.finished.emit(AnyToneDevice.STATUS_SUCCESS)
+
+        self.radio_device.update1.disconnect()
+        self.radio_device.update2.disconnect()
+        self.radio_device.finished.disconnect()

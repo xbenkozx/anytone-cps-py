@@ -3,7 +3,7 @@ import sys, os, argparse
 
 ### DEBUG
 # os.system('python build-ui.py')
-# os.system('python compile.py')
+os.system('python compile.py')
 ###
 
 
@@ -15,6 +15,7 @@ from CPS.UserSettings import UserSettings
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-f','--firmware')
+    parser.add_argument('-d','--debug', action='store_true')
     args = parser.parse_args()
 
     if args.firmware != None:
@@ -45,6 +46,7 @@ if __name__ == "__main__":
     Theme.applyTheme(app, UserSettings.theme[0], UserSettings.theme[1])
     
     widget = MainWindow()
+    widget.debug = args.debug
     widget.show()
     app_icon = QIcon(UI_Constants.iconPath())
     widget.setWindowIcon(app_icon)

@@ -7426,6 +7426,12 @@ class MainWindow(QMainWindow):
         self.rwo.is_write = True
         self.rwo.show()
     def writeToRadio(self):
+        if not self.debug:
+            QMessageBox.warning(
+                self,
+                "Write To Radio",
+                "Feature disabled due to bugs"
+            )
         if self.com_port == '':
             print("Error: Comport not set")
         else:
@@ -9057,7 +9063,7 @@ class OptionalSettingsEditDialog(QDialog):
         AnyToneMemory.optional_settings.gps_mode = self.ui.gpsModeCmbx.currentIndex()
         AnyToneMemory.optional_settings.gps_information_char = self.ui.gpsInformationUpdateTxt.text()
         # VFO Scan
-        AnyToneMemory.optional_settings.vfo_scan_type = self.ui.vfoScanTypeCmbx.setCurrentIndex()
+        AnyToneMemory.optional_settings.vfo_scan_type = self.ui.vfoScanTypeCmbx.currentIndex()
         AnyToneMemory.optional_settings.vfo_scan_start_freq_uhf = int(Decimal(self.ui.vfoScanStartUhfTxt.text()) * 100000)
         AnyToneMemory.optional_settings.vfo_scan_end_freq_uhf = int(Decimal(self.ui.vfoScanEndUhfTxt.text()) * 100000)
         AnyToneMemory.optional_settings.vfo_scan_start_freq_vhf = int(Decimal(self.ui.vfoScanStartVhfTxt.text()) * 100000)
@@ -9085,7 +9091,7 @@ class OptionalSettingsEditDialog(QDialog):
         AnyToneMemory.optional_settings.auto_repeater_2_min_freq_vhf = int(Decimal(self.ui.minFreqAutoRepeater2VhfTxt.text()) * 100000)
         AnyToneMemory.optional_settings.auto_repeater_2_max_freq_vhf = int(Decimal(self.ui.maxFreqAutoRepeater2VhfTxt.text()) * 100000)
         AnyToneMemory.optional_settings.auto_repeater_2_min_freq_uhf = int(Decimal(self.ui.minFreqAutoRepeater2UhfTxt.text()) * 100000)
-        AnyToneMemory.optional_settings.auto_repeater_2_max_freq_uhf = int(Decimal(self.ui.maxFreqAutoRepeater2UhfTxt.text()) * 100000)      
+        AnyToneMemory.optional_settings.auto_repeater_2_max_freq_uhf = int(Decimal(self.ui.maxFreqAutoRepeater2UhfTxt.text()) * 100000)
         # Record
         AnyToneMemory.optional_settings.record_function = self.ui.recordFunctionCmbx.currentIndex()
         # Volume/Audio
