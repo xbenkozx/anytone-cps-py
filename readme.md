@@ -129,7 +129,7 @@ For full download and build,
 
     git clone https://github.com/xbenkozx/anytone-cps-py.git
     cd anytone-cps-py
-    python -m venv .venv
+    python3 -m venv .venv
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
     pip install -r requirements.txt
     pyinstaller anytone-cps.spec
@@ -142,9 +142,19 @@ You can send money via paypal to k7dmg@protonmail.com.
 
 # Troubleshooting
 
+## Serial Device Not Accessible
 If you are having issues where the  COM port cannot be opened, you may need to add yourself to the dialout user group.
+
     sudo usermod -a -G dialout <username>
+
 After running the command, logout then back in and the serial ports should now be accessible.
+
+## Error Installing pyaudio
+
+If you get an error installing pyaudio on linux, try installing libasound-dev package
+
+    sudo apt-get install libasound-dev
+
 
 # License
 anytone-878uvii-cps-py - A multi-platform GUI for Anytone D878UVII Radios.
