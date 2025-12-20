@@ -13,10 +13,39 @@ Currently, this project is in Alpha stage and is a work is progress. Make sure y
 > This project is not affiliated with, endorsed by, or supported by AnyTone / Qixiang. All trademarks are the property of their respective owners.
 
 ---
-<table style="width:100%;">
-<tr>
-<td style='vertical-align:top;'>
 
+## Supported Devices
+- D878UVII
+
+## Why?
+The stock CPS for the 878UVII:
+
+- Is Windows-only and does not run using WINE
+- Is not scriptable or easy to automate
+- Makes bulk edits and codeplug management harder than it needs to be
+
+## Planned Updates
+- Remaing OEM CPS features
+- Repeater Book Import
+- Expert Options (AT_OPTIONS)
+- Expansion to other radio models (D878UV, D168UV)
+
+# Reporting Bugs & Requesting Features
+
+- **Bugs**: Please include:
+    - OS and version
+    - Python version
+    - Radio model and firmware version
+    - Exact command you ran
+    - Error output / stack trace
+- **Feature requests**: Explain:
+    - What problem you’re trying to solve
+    - How you currently work around it (if at all)
+    - Any reference code / examples that might help
+
+---
+
+# Feature Set
 ## Serial Data
 These are not fully tested.
 | Data | Read/Write |
@@ -52,9 +81,6 @@ These are not fully tested.
 | TalkGroups | R/W |
 | Zones | R/W |
 
-</td>
-<td style='vertical-align:top;'>
-
 ## CSV Import/Export
 | Data | Import/Export |
 | - | :---: |
@@ -83,38 +109,7 @@ These are not fully tested.
 | TalkGroups | I |
 | Zones | I |
 
-</td>
-</tr>
-</table>
-
-## Planned Updates
-- Remaing OEM CPS features
-- Repeater Book Import
-- Expert Options (AT_OPTIONS)
-- Expansion to other radio models (D878UV, D168UV)
-
-## Supported Devices
-- D878UVII
-
-## Why?
-The stock CPS for the 878UVII:
-
-- Is Windows-only and does not run using WINE
-- Is not scriptable or easy to automate
-- Makes bulk edits and codeplug management harder than it needs to be
-
-# Reporting Bugs & Requesting Features
-
-- **Bugs**: Please include:
-    - OS and version
-    - Python version
-    - Radio model and firmware version
-    - Exact command you ran
-    - Error output / stack trace
-- **Feature requests**: Explain:
-    - What problem you’re trying to solve
-    - How you currently work around it (if at all)
-    - Any reference code / examples that might help
+---
 
 # Installation
 This project uses some additional libraries. To install them, run this line:
