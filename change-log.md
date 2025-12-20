@@ -5,8 +5,10 @@
 - Serial Read/Write Functions:
     - Digital Contact
     - Prefabricated SMS
+- Available Update Notification
 
-UI Updates and Bug fixes
+#### Updated
+- UI Updates and Bug fixes
 
 ## 12-19-2025
 #### Added

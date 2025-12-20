@@ -6,7 +6,7 @@ from CPS.Utils import Bit
 # FW/CPS Version Data
 class Constants:
     CPS_VERSION = "0.1"
-    CPS_BUILD_NUMBER = "1"
+    CPS_BUILD_NUMBER = "5"
     RADIO_MODEL = "D878UVII"
     FW_CPS_VERSION = "4.00"
     FW_CPS_VERSION_MODIFIER = 'Alpha'

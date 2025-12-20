@@ -5,9 +5,10 @@ from functools import partial
 from qt_material import apply_stylesheet, list_themes
 from pyaudio import PyAudio
 from PIL.ImageQt import ImageQt
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale, 
     QMetaObject, QObject, QPoint, QRect, QThreadPool, QRegularExpression, 
-    QSize, QTime, QUrl, Qt, QModelIndex)
+    QSize, QTime, QUrl, Qt, QModelIndex, QEventLoop, Slot)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QAction,
     QFont, QFontDatabase, QGradient, QIcon, QStandardItem, QStandardItemModel, 
     QImage, QKeySequence, QLinearGradient, QPainter, QCloseEvent, QTextBlockFormat,
@@ -7210,6 +7211,7 @@ class MainWindow(QMainWindow):
         # self.forcedImport()
     def showEvent(self, event: QShowEvent):
         super().showEvent(event)
+        self.checkUpdates()
         if not self.debug:
             self.showAlphaWarningMessage()
     def closeEvent(self, event: QCloseEvent):
@@ -7303,6 +7305,37 @@ class MainWindow(QMainWindow):
         layout.addItem(horizontal_spacer, layout.rowCount(), 0, 1, layout.columnCount())
         msg.exec()
         msg.resize(400, 1200)
+    def checkUpdates(self):
+        fetcher = WebContent()
+        loop = QEventLoop()
+        fetcher.content_fetched.connect(loop.quit)
+        fetcher.content_fetched.connect(self.updateCheckFinished)
+        url = 'https://raw.githubusercontent.com/xbenkozx/anytone-cps-py/refs/heads/main/VERSION.txt'
+        fetcher.fetch(url)
+        loop.exec() # Blocks until loop.quit() is called
+    def updateCheckFinished(self, version):
+        fw_version = None
+        cps_version = None
+        build_id = None
+        for l in version.split('\n'):
+            info = l.split(':')
+            if len(info) > 1:
+                if info[0] == 'FW_VERSION':
+                    fw_version = info[1].strip()
+                elif info[0] == 'CPS_VERSION':
+                    cps_version = info[1].strip()
+                elif info[0] == 'CPS_BUILD_ID':
+                    build_id = int(info[1].strip())
+        if fw_version and cps_version and build_id:
+            if int(Constants.CPS_BUILD_NUMBER) < build_id:
+                QMessageBox.information(
+                    self,
+                    "Update Available",
+                    f"Current Version: {Constants.FW_CPS_VERSION} ({Constants.CPS_VERSION} build {Constants.CPS_BUILD_NUMBER})\n"\
+                    f"New Version: {fw_version} ({cps_version} build {str(build_id)})\n\n" \
+                    "Visit github.com/xbenkozx/anytone-cps-py for updates.",
+                    QMessageBox.StandardButton.Ok
+                )
     # CPS File
     def openFile(self):
         fname, _ = QFileDialog.getOpenFileName(
@@ -9655,6 +9688,31 @@ class RoamingChannelEditDialog(QDialog):
     def formatTxFrequency(self):
         txt  = self.ui.txFrequencyTxt.text()
         self.ui.txFrequencyTxt.setText(format(f'{Decimal(txt):.5f}'))
+class WebContent(QObject):
+    # Define a signal to emit when content is successfully retrieved
+    content_fetched = Signal(str)
+    def __init__(self):
+        super().__init__()
+        self.manager = QNetworkAccessManager(self)
+        self.manager.finished.connect(self.on_reply_finished)
+    def fetch(self, url_string):
+        """Sends a GET request to the specified URL."""
+        url = QUrl(url_string)
+        if url.isValid():
+            request = QNetworkRequest(url)
+            self.manager.get(request)
+        else:
+            print(f"Invalid URL: {url_string}")
+    @Slot(QNetworkReply)
+    def on_reply_finished(self, reply):
+        """Reads the response when the network request is complete."""
+        if reply.error() == QNetworkReply.NetworkError.NoError:
+            data = reply.readAll()
+            html_content = str(data, 'utf-8')
+            self.content_fetched.emit(html_content)
+        else:
+            print(f"Network error: {reply.errorString()}")
+        reply.deleteLater()
 class Theme:
     THEME_STRINGS = [
         'None',
