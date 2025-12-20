@@ -121,7 +121,7 @@ These are not fully tested.
 # Installation
 This project uses some additional libraries. To install them, run this line:
 
-    pip install pyside6, pyaudio, pyserial, pandas, qt-material, darkdetect
+    pip install pyside6, pyaudio, pyserial, pandas, qt-material, darkdetect, pillow
 
 This can also be compiles to a single executable using pyinstaller and the included spec file.
 
