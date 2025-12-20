@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['D878UVII_4.00_CPS.py'],
+    ['anytone-cps.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -24,7 +24,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='D878UVII_4.00_CPS',
+    name='anytone-cps',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

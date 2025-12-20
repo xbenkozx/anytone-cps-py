@@ -7,82 +7,85 @@ An open-source, cross-platform Customer Programming Software (CPS) for the AnyTo
 
 This project aims to provide a modern, scriptable, and community-maintained alternative to the stock AnyTone CPS, while keeping the workflow familiar for existing users.
 
-Currently, this project is in Alpha stage and is a work is progress. Not all functionality has been added but will be updated as soon as feature become available. Only FW version 4.00 is supported. Once the CPS is in Beta, I will expand to include future FW versions.
+Currently, this project is in Alpha stage and is a work is progress. Make sure you have a backup of your codeplug in the event that you need to factory reset your radio. Not all functionality has been added but will be updated as soon as features become available. Only FW version 4.00 is supported. Once the CPS is in Beta, I will expand to include future FW versions.
 
 > **Note**  
 > This project is not affiliated with, endorsed by, or supported by AnyTone / Qixiang. All trademarks are the property of their respective owners.
 
 ---
+<table style="width:100%;">
+<tr>
+<td style='vertical-align:top;'>
 
-## Working Serial Features
-### Read
-- Auto Repeater Offset Frequencies
-- Alert Settings
-- Channels
-- Digital Contacts
-- FM Channels
-- GPS Roaming
-- Master ID
-- Optional Settings
-- Prefabricated SMS
-- Radio IDs
-- Roaming Channels
-- Roaming Zones
-- Scan Lists
-- TalkGroups
-- Zones
+## Serial Data
+These are not fully tested.
+| Data | Read/Write |
+| - | :---: |
+| Boot Image | R/W |
+| BK Image 1 | R/W |
+| BK Image 2 | R/W |
+| 2Tone Encode/Decode | |
+| 5Tone Encode/Decode | |
+| AES Encryption Code | |
+| Analog Address Book | |
+| APRS | |
+| ARC4 Encryption Code | |
+| Auto Repeater Offset Frequencies | R/W |
+| Alarm Settings | R/W |
+| Channels | R/W |
+| Digital Contacts | R |
+| DTMF Encode/Decode | |
+| Local Information/Expert Options(AT_OPTIONS) | R |
+| FM Channels | R/W |
+| GPS Roaming | R/W |
+| HotKey HotKey | |
+| HotKey Quick Call | |
+| HotKey State | |
+| Local Information | |
+| Master ID | R |
+| Optional Settings | R/W |
+| Prefabricated SMS | R |
+| Radio IDs | R/W |
+| Roaming Channels | R/W |
+| Roaming Zones | R/W |
+| Scan Lists | R/W |
+| TalkGroups | R/W |
+| Zones | R/W |
 
-### Write
-- Channels
-- FM Channels
-- GPS Roaming
-- Radio IDs
-- Scan Lists
-- TalkGroups
-- Zones
+</td>
+<td style='vertical-align:top;'>
 
-## Serial Features To Implement
-- 2Tone Encode/Decode
-- 5Tone Encode/Decode
-- AES Encryption Code
-- Analog Address Book
-- APRS
-- ARC4 Encryption Code
-- DTMF Encode/Decode
-- HotKey HotKey
-- HotKey Quick Call
-- HotKey State
+## CSV Import/Export
+| Data | Import/Export |
+| - | :---: |
+| 2Tone Encode | |
+| 5Tone Encode | |
+| AES Encryption Code | |
+| Alert Tone | |
+| Analog Address Book | |
+| APRS | |
+| ARC4 Encryption Code | |
+| Auto Repeater Offset Frequencies | I |
+| Channels | I |
+| Digital Contacts | I |
+| DTMF Encode | |
+| FM Channels | I |
+| GPS Roaming | |
+| HotKey HotKey | |
+| HotKey Quick Call | |
+| HotKey State | |
+| Optional Settings | |
+| Prefabricated SMS | I |
+| Radio IDs | I |
+| Roaming Channels | I |
+| Roaming Zones | I |
+| Scan Lists | I |
+| TalkGroups | I |
+| Zones | I |
 
-## Working Import Features
-- Auto Repeater Offset Frequencies
-- Channels
-- Digital Contacts
-- FM Channels
-- Prefabricated SMS
-- Radio IDs
-- Roaming Channels
-- Roaming Zones
-- Scan Lists
-- TalkGroups
-- Zones
-
-## Import Features To Implement
-- 2Tone Encode
-- 5Tone Encode
-- AES Encryption Code
-- Alert Tone
-- Analog Address Book
-- APRS
-- ARC4 Encryption Code
-- DTMF Encode
-- GPS Roaming
-- HotKey HotKey
-- HotKey Quick Call
-- HotKey State
-- Optional Settings
-
-## Working Export Features
-- Nothing
+</td>
+</tr>
+</table>
 
 ## Planned Updates
 - Remaing OEM CPS features
@@ -123,11 +126,11 @@ This can also be compiles to a single executable using pyinstaller and the inclu
 For full download and build,
 
     git clone https://github.com/xbenkozx/anytone-cps-py.git
-    cd anytone-878uvii-cps-py
+    cd anytone-cps-py
     python -m venv .venv
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
     pip install -r requirements.txt
-    pyinstaller D878UVII_4.00_CPS.spec
+    pyinstaller anytone-cps.spec
 
 The compiled executable can be found in the *dist* folder
 

@@ -1,15 +1,18 @@
+import numpy as np
+from PIL import Image
 import ast, math, copy, os, sys, darkdetect, configparser 
 from functools import partial
 from qt_material import apply_stylesheet, list_themes
 from pyaudio import PyAudio
+from PIL.ImageQt import ImageQt
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale, 
-    QMetaObject, QObject, QPoint, QRect, QThreadPool, 
+    QMetaObject, QObject, QPoint, QRect, QThreadPool, QRegularExpression, 
     QSize, QTime, QUrl, Qt, QModelIndex)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QAction,
     QFont, QFontDatabase, QGradient, QIcon, QStandardItem, QStandardItemModel, 
     QImage, QKeySequence, QLinearGradient, QPainter, QCloseEvent, QTextBlockFormat,
     QPalette, QPixmap, QRadialGradient, QTransform, QScreen, QShortcut, QKeySequence,
-    QShowEvent)
+    QShowEvent, QRegularExpressionValidator)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QDialog,
     QFormLayout, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
@@ -436,7 +439,10 @@ class AutoRepeaterOffsetFrequencyItemModel(QStandardItemModel):
             self.item(idx, 0).setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
             if arf.frequency == 0:
                 continue
-            self.setItem(idx, 1, QStandardItem(arf.getFrequencyStr() + ' MHz'))
+            if arf.getFrequencyDecimal() < 1:
+                self.setItem(idx, 1, QStandardItem(format(f'{arf.getFrequencyDecimal() * 1000:.2f}') + ' kHz'))
+            else:
+                self.setItem(idx, 1, QStandardItem(arf.getFrequencyStr() + ' MHz'))
             for i in range(1, len(self.TABLE_HEADERS)):
                 self.item(idx, i).setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
 class Ui_AutoRepeaterOffsetFrequencyEditDialog(object):
@@ -1055,6 +1061,70 @@ class Ui_RoamingZoneEditDialog(object):
         self.cancelBtn.setText(QCoreApplication.translate("RoamingZoneEditDialog", u"Cancel", None))
         self.prevBtn.setText(QCoreApplication.translate("RoamingZoneEditDialog", u"Previous", None))
         self.nextBtn.setText(QCoreApplication.translate("RoamingZoneEditDialog", u"Next", None))
+class Ui_ImageDialog(object):
+    def setupUi(self, ImageDialog):
+        if not ImageDialog.objectName():
+            ImageDialog.setObjectName(u"ImageDialog")
+        ImageDialog.resize(379, 260)
+        self.verticalLayout = QVBoxLayout(ImageDialog)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.widget = QWidget(ImageDialog)
+        self.widget.setObjectName(u"widget")
+        self.horizontalLayout = QHBoxLayout(self.widget)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.widget_2 = QWidget(self.widget)
+        self.widget_2.setObjectName(u"widget_2")
+        self.verticalLayout_3 = QVBoxLayout(self.widget_2)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.imageLabel = QLabel(self.widget_2)
+        self.imageLabel.setObjectName(u"imageLabel")
+        self.imageLabel.setMinimumSize(QSize(160, 128))
+        self.imageLabel.setMaximumSize(QSize(160, 128))
+        self.verticalLayout_3.addWidget(self.imageLabel)
+        self.widget_4 = QWidget(self.widget_2)
+        self.widget_4.setObjectName(u"widget_4")
+        self.horizontalLayout_2 = QHBoxLayout(self.widget_4)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.readBtn = QPushButton(self.widget_4)
+        self.readBtn.setObjectName(u"readBtn")
+        self.horizontalLayout_2.addWidget(self.readBtn)
+        self.writeBtn = QPushButton(self.widget_4)
+        self.writeBtn.setObjectName(u"writeBtn")
+        self.horizontalLayout_2.addWidget(self.writeBtn)
+        self.verticalLayout_3.addWidget(self.widget_4)
+        self.horizontalLayout.addWidget(self.widget_2)
+        self.widget_3 = QWidget(self.widget)
+        self.widget_3.setObjectName(u"widget_3")
+        self.verticalLayout_2 = QVBoxLayout(self.widget_3)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalLayout_2.addItem(self.verticalSpacer_2)
+        self.openImageBtn = QPushButton(self.widget_3)
+        self.openImageBtn.setObjectName(u"openImageBtn")
+        self.verticalLayout_2.addWidget(self.openImageBtn)
+        self.openBinBtn = QPushButton(self.widget_3)
+        self.openBinBtn.setObjectName(u"openBinBtn")
+        self.verticalLayout_2.addWidget(self.openBinBtn)
+        self.saveBinBtn = QPushButton(self.widget_3)
+        self.saveBinBtn.setObjectName(u"saveBinBtn")
+        self.verticalLayout_2.addWidget(self.saveBinBtn)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalLayout_2.addItem(self.verticalSpacer)
+        self.horizontalLayout.addWidget(self.widget_3)
+        self.verticalLayout.addWidget(self.widget)
+        self.progressBar = QProgressBar(ImageDialog)
+        self.progressBar.setObjectName(u"progressBar")
+        self.progressBar.setValue(0)
+        self.verticalLayout.addWidget(self.progressBar)
+        self.retranslateUi(ImageDialog)
+    def retranslateUi(self, ImageDialog):
+        ImageDialog.setWindowTitle(QCoreApplication.translate("ImageDialog", u"Dialog", None))
+        self.imageLabel.setText("")
+        self.readBtn.setText(QCoreApplication.translate("ImageDialog", u"Read", None))
+        self.writeBtn.setText(QCoreApplication.translate("ImageDialog", u"Write", None))
+        self.openImageBtn.setText(QCoreApplication.translate("ImageDialog", u"Open Image", None))
+        self.openBinBtn.setText(QCoreApplication.translate("ImageDialog", u"Open Bin", None))
+        self.saveBinBtn.setText(QCoreApplication.translate("ImageDialog", u"Save Bin", None))
 class Ui_MasterIdDialog(object):
     def setupUi(self, MasterIdDialog):
         if not MasterIdDialog.objectName():
@@ -4692,59 +4762,60 @@ class Ui_ThemeDialog(object):
         ThemeDialog.setWindowTitle(QCoreApplication.translate("ThemeDialog", u"Dialog", None))
         self.label.setText(QCoreApplication.translate("ThemeDialog", u"Theme", None))
         self.label_2.setText(QCoreApplication.translate("ThemeDialog", u"Mode", None))
-class Ui_RomaingChannelEditDialog(object):
-    def setupUi(self, RomaingChannelEditDialog):
-        if not RomaingChannelEditDialog.objectName():
-            RomaingChannelEditDialog.setObjectName(u"RomaingChannelEditDialog")
-        RomaingChannelEditDialog.resize(400, 262)
-        self.verticalLayout = QVBoxLayout(RomaingChannelEditDialog)
+class Ui_RoamingChannelEditDialog(object):
+    def setupUi(self, RoamingChannelEditDialog):
+        if not RoamingChannelEditDialog.objectName():
+            RoamingChannelEditDialog.setObjectName(u"RoamingChannelEditDialog")
+        RoamingChannelEditDialog.resize(400, 272)
+        self.verticalLayout = QVBoxLayout(RoamingChannelEditDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.formLayout = QFormLayout()
         self.formLayout.setObjectName(u"formLayout")
         self.formLayout.setLabelAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.label = QLabel(RomaingChannelEditDialog)
+        self.label = QLabel(RoamingChannelEditDialog)
         self.label.setObjectName(u"label")
         self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
-        self.label_2 = QLabel(RomaingChannelEditDialog)
+        self.label_2 = QLabel(RoamingChannelEditDialog)
         self.label_2.setObjectName(u"label_2")
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
-        self.label_3 = QLabel(RomaingChannelEditDialog)
+        self.label_3 = QLabel(RoamingChannelEditDialog)
         self.label_3.setObjectName(u"label_3")
         self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_3)
-        self.label_4 = QLabel(RomaingChannelEditDialog)
+        self.label_4 = QLabel(RoamingChannelEditDialog)
         self.label_4.setObjectName(u"label_4")
         self.formLayout.setWidget(3, QFormLayout.ItemRole.LabelRole, self.label_4)
-        self.label_5 = QLabel(RomaingChannelEditDialog)
+        self.label_5 = QLabel(RoamingChannelEditDialog)
         self.label_5.setObjectName(u"label_5")
         self.formLayout.setWidget(4, QFormLayout.ItemRole.LabelRole, self.label_5)
-        self.label_6 = QLabel(RomaingChannelEditDialog)
+        self.label_6 = QLabel(RoamingChannelEditDialog)
         self.label_6.setObjectName(u"label_6")
         self.formLayout.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label_6)
-        self.fastSelectCmbx = QComboBox(RomaingChannelEditDialog)
+        self.fastSelectCmbx = QComboBox(RoamingChannelEditDialog)
         self.fastSelectCmbx.setObjectName(u"fastSelectCmbx")
         self.fastSelectCmbx.setMaximumSize(QSize(150, 16777215))
         self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.fastSelectCmbx)
-        self.colorCodeCmbx = QComboBox(RomaingChannelEditDialog)
+        self.colorCodeCmbx = QComboBox(RoamingChannelEditDialog)
         self.colorCodeCmbx.setObjectName(u"colorCodeCmbx")
         self.colorCodeCmbx.setMaximumSize(QSize(150, 16777215))
         self.formLayout.setWidget(4, QFormLayout.ItemRole.FieldRole, self.colorCodeCmbx)
-        self.slotCmbx = QComboBox(RomaingChannelEditDialog)
+        self.slotCmbx = QComboBox(RoamingChannelEditDialog)
         self.slotCmbx.setObjectName(u"slotCmbx")
         self.slotCmbx.setMaximumSize(QSize(150, 16777215))
         self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.slotCmbx)
-        self.txFrequencyTxt = QLineEdit(RomaingChannelEditDialog)
+        self.txFrequencyTxt = QLineEdit(RoamingChannelEditDialog)
         self.txFrequencyTxt.setObjectName(u"txFrequencyTxt")
         self.txFrequencyTxt.setMaximumSize(QSize(150, 16777215))
         self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.txFrequencyTxt)
-        self.rxFrequencyTxt = QLineEdit(RomaingChannelEditDialog)
+        self.rxFrequencyTxt = QLineEdit(RoamingChannelEditDialog)
         self.rxFrequencyTxt.setObjectName(u"rxFrequencyTxt")
         self.rxFrequencyTxt.setMaximumSize(QSize(150, 16777215))
         self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.rxFrequencyTxt)
-        self.nameTxt = QLineEdit(RomaingChannelEditDialog)
+        self.nameTxt = QLineEdit(RoamingChannelEditDialog)
         self.nameTxt.setObjectName(u"nameTxt")
+        self.nameTxt.setMaxLength(16)
         self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.nameTxt)
         self.verticalLayout.addLayout(self.formLayout)
-        self.widget = QWidget(RomaingChannelEditDialog)
+        self.widget = QWidget(RoamingChannelEditDialog)
         self.widget.setObjectName(u"widget")
         self.horizontalLayout = QHBoxLayout(self.widget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -4759,25 +4830,25 @@ class Ui_RomaingChannelEditDialog(object):
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
         self.verticalLayout.addWidget(self.widget)
-        self.buttonBox = QDialogButtonBox(RomaingChannelEditDialog)
+        self.buttonBox = QDialogButtonBox(RoamingChannelEditDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok)
         self.buttonBox.setCenterButtons(True)
         self.verticalLayout.addWidget(self.buttonBox)
-        self.retranslateUi(RomaingChannelEditDialog)
-        self.buttonBox.accepted.connect(RomaingChannelEditDialog.accept)
-        self.buttonBox.rejected.connect(RomaingChannelEditDialog.reject)
-    def retranslateUi(self, RomaingChannelEditDialog):
-        RomaingChannelEditDialog.setWindowTitle(QCoreApplication.translate("RomaingChannelEditDialog", u"Dialog", None))
-        self.label.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Fast Select", None))
-        self.label_2.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Receive Frequency", None))
-        self.label_3.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Transmit Frequency", None))
-        self.label_4.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Name", None))
-        self.label_5.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Color Code", None))
-        self.label_6.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Slot", None))
-        self.previousBtn.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Previous", None))
-        self.nextBtn.setText(QCoreApplication.translate("RomaingChannelEditDialog", u"Next", None))
+        self.retranslateUi(RoamingChannelEditDialog)
+        self.buttonBox.accepted.connect(RoamingChannelEditDialog.accept)
+        self.buttonBox.rejected.connect(RoamingChannelEditDialog.reject)
+    def retranslateUi(self, RoamingChannelEditDialog):
+        RoamingChannelEditDialog.setWindowTitle(QCoreApplication.translate("RoamingChannelEditDialog", u"Dialog", None))
+        self.label.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Fast Select", None))
+        self.label_2.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Receive Frequency", None))
+        self.label_3.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Transmit Frequency", None))
+        self.label_4.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Name", None))
+        self.label_5.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Color Code", None))
+        self.label_6.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Slot", None))
+        self.previousBtn.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Previous", None))
+        self.nextBtn.setText(QCoreApplication.translate("RoamingChannelEditDialog", u"Next", None))
 class Ui_FmEditDialog(object):
     def setupUi(self, FmEditDialog):
         if not FmEditDialog.objectName():
@@ -5578,14 +5649,15 @@ class Ui_LoadingDialog(object):
         LoadingDialog.setWindowTitle(QCoreApplication.translate("LoadingDialog", u"Dialog", None))
         self.label.setText(QCoreApplication.translate("LoadingDialog", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("LoadingDialog", u"TextLabel", None))
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        if not Dialog.objectName():
-            Dialog.setObjectName(u"Dialog")
-        Dialog.resize(400, 425)
-        self.verticalLayout = QVBoxLayout(Dialog)
+class Ui_GpsRoamingDialog(object):
+    def setupUi(self, GpsRoamingDialog):
+        if not GpsRoamingDialog.objectName():
+            GpsRoamingDialog.setObjectName(u"GpsRoamingDialog")
+        GpsRoamingDialog.setWindowModality(Qt.WindowModality.NonModal)
+        GpsRoamingDialog.resize(400, 425)
+        self.verticalLayout = QVBoxLayout(GpsRoamingDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.widget_3 = QWidget(Dialog)
+        self.widget_3 = QWidget(GpsRoamingDialog)
         self.widget_3.setObjectName(u"widget_3")
         self.horizontalLayout_3 = QHBoxLayout(self.widget_3)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -5612,8 +5684,9 @@ class Ui_Dialog(object):
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
         self.verticalLayout.addWidget(self.widget_3)
-        self.tabWidget = QTabWidget(Dialog)
+        self.tabWidget = QTabWidget(GpsRoamingDialog)
         self.tabWidget.setObjectName(u"tabWidget")
+        self.tabWidget.setEnabled(True)
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
         self.verticalLayout_2 = QVBoxLayout(self.tab)
@@ -5641,6 +5714,7 @@ class Ui_Dialog(object):
         self.formLayout_3.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label_9)
         self.f1LatitudeDegreeCmbx = QComboBox(self.tab)
         self.f1LatitudeDegreeCmbx.setObjectName(u"f1LatitudeDegreeCmbx")
+        self.f1LatitudeDegreeCmbx.setEnabled(True)
         self.f1LatitudeDegreeCmbx.setEditable(True)
         self.formLayout_3.setWidget(0, QFormLayout.ItemRole.FieldRole, self.f1LatitudeDegreeCmbx)
         self.f1NsCmbx = QComboBox(self.tab)
@@ -5648,6 +5722,7 @@ class Ui_Dialog(object):
         self.formLayout_3.setWidget(2, QFormLayout.ItemRole.FieldRole, self.f1NsCmbx)
         self.f1LongitudeDegreeCmbx = QComboBox(self.tab)
         self.f1LongitudeDegreeCmbx.setObjectName(u"f1LongitudeDegreeCmbx")
+        self.f1LongitudeDegreeCmbx.setEnabled(True)
         self.f1LongitudeDegreeCmbx.setEditable(True)
         self.formLayout_3.setWidget(3, QFormLayout.ItemRole.FieldRole, self.f1LongitudeDegreeCmbx)
         self.f1EwCmbx = QComboBox(self.tab)
@@ -5698,7 +5773,7 @@ class Ui_Dialog(object):
         self.horizontalLayout_5.addLayout(self.formLayout_4)
         self.tabWidget.addTab(self.tab_2, "")
         self.verticalLayout.addWidget(self.tabWidget)
-        self.widget_4 = QWidget(Dialog)
+        self.widget_4 = QWidget(GpsRoamingDialog)
         self.widget_4.setObjectName(u"widget_4")
         self.horizontalLayout_4 = QHBoxLayout(self.widget_4)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -5706,17 +5781,17 @@ class Ui_Dialog(object):
         self.horizontalLayout_4.addItem(self.horizontalSpacer_3)
         self.formLayout_2 = QFormLayout()
         self.formLayout_2.setObjectName(u"formLayout_2")
-        self.radiusTxt = QLineEdit(self.widget_4)
-        self.radiusTxt.setObjectName(u"radiusTxt")
-        self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.radiusTxt)
         self.label_3 = QLabel(self.widget_4)
         self.label_3.setObjectName(u"label_3")
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_3)
+        self.radiusTxt = QLineEdit(self.widget_4)
+        self.radiusTxt.setObjectName(u"radiusTxt")
+        self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.radiusTxt)
         self.horizontalLayout_4.addLayout(self.formLayout_2)
         self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.horizontalLayout_4.addItem(self.horizontalSpacer_4)
         self.verticalLayout.addWidget(self.widget_4)
-        self.widget = QWidget(Dialog)
+        self.widget = QWidget(GpsRoamingDialog)
         self.widget.setObjectName(u"widget")
         self.horizontalLayout_2 = QHBoxLayout(self.widget)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -5737,30 +5812,31 @@ class Ui_Dialog(object):
         self.horizontalLayout.addWidget(self.nextBtn)
         self.horizontalLayout_2.addWidget(self.widget_2)
         self.verticalLayout.addWidget(self.widget)
-        self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(Dialog.accept)
-        self.buttonBox.rejected.connect(Dialog.reject)
-        self.tabWidget.setCurrentIndex(1)
-    def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.label.setText(QCoreApplication.translate("Dialog", u"OnOff", None))
-        self.label_2.setText(QCoreApplication.translate("Dialog", u"Zone", None))
-        self.label_4.setText(QCoreApplication.translate("Dialog", u"Latitude Degree", None))
-        self.label_5.setText(QCoreApplication.translate("Dialog", u"Latitude Minute", None))
-        self.label_6.setText(QCoreApplication.translate("Dialog", u"North or South", None))
-        self.label_7.setText(QCoreApplication.translate("Dialog", u"Longitude Degree", None))
-        self.label_8.setText(QCoreApplication.translate("Dialog", u"Longitude Minute", None))
-        self.label_9.setText(QCoreApplication.translate("Dialog", u"East or West", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"ddd.mm.mm", None))
-        self.label_10.setText(QCoreApplication.translate("Dialog", u"Latitude Degree", None))
-        self.label_11.setText(QCoreApplication.translate("Dialog", u"North or South", None))
-        self.label_12.setText(QCoreApplication.translate("Dialog", u"Longitude Degree", None))
-        self.label_13.setText(QCoreApplication.translate("Dialog", u"East or West", None))
+        self.retranslateUi(GpsRoamingDialog)
+        self.buttonBox.accepted.connect(GpsRoamingDialog.accept)
+        self.buttonBox.rejected.connect(GpsRoamingDialog.reject)
+        self.tabWidget.setCurrentIndex(0)
+    def retranslateUi(self, GpsRoamingDialog):
+        GpsRoamingDialog.setWindowTitle(QCoreApplication.translate("GpsRoamingDialog", u"Dialog", None))
+        self.label.setText(QCoreApplication.translate("GpsRoamingDialog", u"OnOff", None))
+        self.label_2.setText(QCoreApplication.translate("GpsRoamingDialog", u"Zone", None))
+        self.label_4.setText(QCoreApplication.translate("GpsRoamingDialog", u"Latitude Degree", None))
+        self.label_5.setText(QCoreApplication.translate("GpsRoamingDialog", u"Latitude Minute", None))
+        self.label_6.setText(QCoreApplication.translate("GpsRoamingDialog", u"North or South", None))
+        self.label_7.setText(QCoreApplication.translate("GpsRoamingDialog", u"Longitude Degree", None))
+        self.label_8.setText(QCoreApplication.translate("GpsRoamingDialog", u"Longitude Minute", None))
+        self.label_9.setText(QCoreApplication.translate("GpsRoamingDialog", u"East or West", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("GpsRoamingDialog", u"ddd.mm.mm", None))
+        self.label_10.setText(QCoreApplication.translate("GpsRoamingDialog", u"Latitude Degree", None))
+        self.label_11.setText(QCoreApplication.translate("GpsRoamingDialog", u"North or South", None))
+        self.label_12.setText(QCoreApplication.translate("GpsRoamingDialog", u"Longitude Degree", None))
+        self.label_13.setText(QCoreApplication.translate("GpsRoamingDialog", u"East or West", None))
         self.label_14.setText("")
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"ddd.ddddd", None))
-        self.label_3.setText(QCoreApplication.translate("Dialog", u"Radius (Meter)", None))
-        self.prevBtn.setText(QCoreApplication.translate("Dialog", u"Previous", None))
-        self.nextBtn.setText(QCoreApplication.translate("Dialog", u"Next", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("GpsRoamingDialog", u"ddd.ddddd", None))
+        self.label_3.setText(QCoreApplication.translate("GpsRoamingDialog", u"Radius (Meter)", None))
+        self.radiusTxt.setInputMask("")
+        self.prevBtn.setText(QCoreApplication.translate("GpsRoamingDialog", u"Previous", None))
+        self.nextBtn.setText(QCoreApplication.translate("GpsRoamingDialog", u"Next", None))
 class Ui_ImportExportDialog(object):
     def setupUi(self, ImportExportDialog):
         if not ImportExportDialog.objectName():
@@ -6116,10 +6192,176 @@ class Ui_RadioIdEditDialog(object):
         self.label_2.setText(QCoreApplication.translate("RadioIdEditDialog", u"Radio ID Name", None))
         self.prevBtn.setText(QCoreApplication.translate("RadioIdEditDialog", u"Previous", None))
         self.nextBtn.setText(QCoreApplication.translate("RadioIdEditDialog", u"Next", None))
+class LocalInformationDialog(QDialog):
+    def __init__(self, parent, local_info_data):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_LocalInformationDialog()
+        self.ui.setupUi(self)
+        self.ui.buttonBox.accepted.connect(self.close)
+        self.local_info_data = local_info_data
+        self.loadData()
+    def loadData(self):
+        self.eo = ExpertOptions()
+        self.eo.decode(self.local_info_data)
+        if len(self.eo.data) > 0:
+             self.ui.radioTypeTxt.setText(self.eo.radio_type)
+             self.ui.areaCodeTxt.setText(self.eo.area_code)
+             self.ui.serialNumberTxt.setText(self.eo.serial_number)
+             self.ui.productionDateTxt.setText(self.eo.production_date)
+             self.ui.manufactureCodeTxt.setText(self.eo.manufacture_code)
+             self.ui.maintenanceDateTxt.setText(self.eo.maintenance_date)
+             self.ui.maintenanceDescriptionTxt.setPlainText(self.eo.maintenance_description)
+             self.ui.dealerCodeTxt.setText(self.eo.dealer_code)
+             self.ui.stockDateTxt.setText(self.eo.stock_date)
+             self.ui.sellDateTxt.setText(self.eo.sell_date)
+             self.ui.sellerTxt.setText(self.eo.seller)
+class ImageDialog(QDialog):
+    BOOT_IMAGE = 4
+    BK1_IMAGE = 5
+    BK2_IMAGE = 6
+    def __init__(self, parent, image_type):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_ImageDialog()
+        self.ui.setupUi(self)
+        self.threadpool = QThreadPool()
+        self.image_type = image_type
+        self.ui.openImageBtn.clicked.connect(self.openImage)
+        self.ui.readBtn.clicked.connect(self.readImage)
+        self.ui.writeBtn.clicked.connect(self.writeImage)
+        self.ui.openBinBtn.clicked.connect(self.openBin)
+        self.ui.saveBinBtn.clicked.connect(self.saveBin)
+        self.ui.progressBar.setMaximum(0xa000)
+        self.ui.progressBar.setVisible(False)
+        if image_type == ImageDialog.BOOT_IMAGE:
+            self.setWindowTitle('Boot Image')
+        elif image_type == ImageDialog.BK1_IMAGE:
+            self.setWindowTitle('BK1 Image')
+        elif image_type == ImageDialog.BK2_IMAGE:
+            self.setWindowTitle('BK2 Image')
+    def openImage(self):
+        fname, _ = QFileDialog.getOpenFileName(
+        parent=self,
+            caption="Open Image",
+            dir=".", # Current directory
+            filter="Image Files (*.jpg *.jpeg *.bmp)" # Filter examples
+        )
+        # fname = 'C:/Users/Ben/Downloads/D878UVII PLUS V4.00 official release 250815/D878UVII PLUS V4.00 official release 250815/D878UVscreens/AnyChrome_BOOT.bmp'
+        img = Image.open(fname).convert("RGB")
+        img = img.transpose(Image.TRANSPOSE)
+        self.convertImageToRGB565(img)
+        self.showImageData()
+    def readImage(self):
+        if self.parent.com_port == '':
+            print("Error: Comport not set")
+        else:
+            ports = QSerialPortInfo.availablePorts()
+            comports = [port.portName() for port in ports]
+            if (self.parent.com_port != 'VIRTUAL' and self.parent.com_port not in comports) or (self.parent.com_port == 'VIRTUAL' and self.parent.virtual_com_file == ''):
+                print('COM Error: COM Port not available')
+                return
+            self.ui.progressBar.setVisible(True)
+            self.ui.progressBar.setValue(0)
+            self.adw = AnyToneSerialWorker()
+            if self.parent.com_port == 'VIRTUAL':
+                self.adw.setVirtualFile(self.parent.virtual_com_file)
+            else:
+                self.adw.setComport(self.parent.com_port)
+            self.adw.setReadWriteOptions(self.image_type)
+            self.adw.is_write = False
+            self.adw.signals.finished.connect(self.readFromRadioFinished)
+            self.adw.signals.update1.connect(self.updateMainbar)
+            self.threadpool.start(self.adw)
+    def writeImage(self):
+        if self.parent.com_port == '':
+            print("Error: Comport not set")
+        else:
+            ports = QSerialPortInfo.availablePorts()
+            comports = [port.portName() for port in ports]
+            if (self.parent.com_port != 'VIRTUAL' and self.parent.com_port not in comports) or (self.parent.com_port == 'VIRTUAL' and self.parent.virtual_com_file == ''):
+                print('COM Error: COM Port not available')
+                return
+            self.ui.progressBar.setVisible(True)
+            self.ui.progressBar.setValue(0)
+            self.adw = AnyToneSerialWorker()
+            if self.parent.com_port == 'VIRTUAL':
+                self.adw.setVirtualFile(self.parent.virtual_com_file)
+            else:
+                self.adw.setComport(self.parent.com_port)
+            self.adw.image_data = self.image_data
+            self.adw.setReadWriteOptions(self.image_type)
+            self.adw.is_write = True
+            self.adw.signals.finished.connect(self.readFromRadioFinished)
+            self.adw.signals.update1.connect(self.updateMainbar)
+            self.threadpool.start(self.adw)
+    def saveBin(self):
+        fname, _ = QFileDialog.getSaveFileName(
+        parent=self,
+            caption="Save Bin",
+            dir=".", # Current directory
+            filter="Bin Files (*.bin)" # Filter examples
+        )
+        with open(fname, 'wb') as f:
+            f.write(self.image_data)
+    def openBin(self):
+        fname, _ = QFileDialog.getOpenFileName(
+        parent=self,
+            caption="Open Bin",
+            dir=".", # Current directory
+            filter="Bin Files (*.bin)" # Filter examples
+        )
+        with open(fname, 'rb') as f:
+            self.image_data = f.read()
+        self.showImageData()
+    def updateMainbar(self, val:int, _max:int, _str:str):
+        self.ui.progressBar.setValue(val)
+    def readFromRadioFinished(self, status: int):
+        self.ui.progressBar.setVisible(False)
+        self.image_data = self.adw.radio_device.image_data
+        self.showImageData()
+    def showImageData(self):
+        rgb565_array = np.frombuffer(self.image_data, dtype='>u2')
+        rgb565_2d = rgb565_array.reshape((160, 128))
+        r5 = (rgb565_2d >> 11) & 0x1F  # Extract the top 5 bits
+        g6 = (rgb565_2d >> 5) & 0x3F   # Extract the middle 6 bits
+        b5 = rgb565_2d & 0x1F          # Extract the bottom 5 bits
+        r8 = (r5 << 3).astype(np.uint8)
+        g8 = (g6 << 2).astype(np.uint8)
+        b8 = (b5 << 3).astype(np.uint8)
+        # Combine into a 3D NumPy array
+        rgb_image = np.dstack((r8, g8, b8))
+        image = Image.fromarray(rgb_image, 'RGB')
+        image = image.transpose(Image.TRANSPOSE)
+        # image = image.transpose(Image.TRANSPOSE)
+        # image.save("output_image.png")
+        self.image = ImageQt(image)
+        pixmap = QPixmap.fromImage(self.image)
+        self.ui.imageLabel.setPixmap(pixmap)
+    def convertImageToRGB565(self, image: Image):
+        width, height = image.size
+        print(f"Converting image of size: {width}x{height}")
+        rgb565_bytes = bytearray()
+        for y in range(height):
+            for x in range(width):
+                # Get the 8-bit R, G, B values for the pixel
+                r, g, b = image.getpixel((x, y))
+                # Convert 8-bit RGB to 16-bit RGB565
+                # R: 8 bits -> 5 bits (highest 5 bits)
+                # G: 8 bits -> 6 bits (highest 6 bits)
+                # B: 8 bits -> 5 bits (highest 5 bits)
+                r5 = (r >> 3) & 0x1F
+                g6 = (g >> 2) & 0x3F
+                b5 = (b >> 3) & 0x1F
+                # Pack into a 16-bit integer: [RRRRRGGG] [GGGGBBBB]
+                rgb565_pixel = (r5 << 11) | (g6 << 5) | b5
+                # Append to byte array in big-endian format (most significant byte first)
+                rgb565_bytes.extend(struct.pack('>H', rgb565_pixel))
+        self.image_data = rgb565_bytes
 class ExpertOptionsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ExpertOptionsDialog()
         self.ui.setupUi(self)
         self.eo = ExpertOptions()
@@ -6211,21 +6453,19 @@ class LoadingDialog(QWidget):
 class ReadWriteOptionsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ReadWriteOptionsDialog()
         self.ui.setupUi(self)
         self.is_write = False
         self.ui.buttonBox.accepted.connect(self.setOptionsAndClose)
         self.ui.buttonBox.rejected.connect(self.close)
     def setOptionsAndClose(self):
-        if self.ui.digitalContactListChbx.isChecked() and self.ui.otherDataChbx.isChecked():
-            self.parent.read_write_options = 3
-        elif self.ui.digitalContactListChbx.isChecked():
-            self.parent.read_write_options = 2
-        elif self.ui.otherDataChbx.isChecked():
-            self.parent.read_write_options = 1
-        else:
-            self.parent.read_write_options = 0
+        options = 0
+        if self.ui.digitalContactListChbx.isChecked():
+            options += AnyToneDevice.DIGITAL_CONTACTS
+        if self.ui.otherDataChbx.isChecked():
+            options += AnyToneDevice.RADIO_DATA
+        self.parent.read_write_options = options
         if not self.is_write:
             self.parent.readFromRadio()
         else:
@@ -6277,7 +6517,7 @@ class ChannelSettings(QMainWindow):
     receive_group_call_list = []
     def __init__(self, parent, index):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ChannelSettings()
         self.ui.setupUi(self)
         self.resize(400, 400)
@@ -6546,7 +6786,7 @@ class ChannelSettings(QMainWindow):
         self.ui.arc4CodeCmbx.setCurrentIndex(self.channel.arc4_encryption_key_idx)
         self.ui.aesCodeCmbx.setCurrentIndex(self.channel.aes_encryption_idx)
         self.ui.multiKeyCmbx.setCurrentIndex(self.channel.aes_multiple_key)
-        self.ui.randomKeyCmbx.setCurrentIndex(self.channel.random_key)
+        self.ui.randomKeyCmbx.setCurrentIndex(self.channel.aes_random_key)
         self.ui.smsForbidCmbx.setCurrentIndex(self.channel.sms_forbid)
         self.ui.sendTalkerAliasChbx.setChecked(self.channel.send_talker_alias)
         self.ui.callConfirmationChbx.setChecked(self.channel.call_confirmation)
@@ -6624,7 +6864,7 @@ class ChannelSettings(QMainWindow):
         self.channel.arc4_encryption_key_idx = self.ui.arc4CodeCmbx.currentIndex()
         self.channel.aes_encryption_idx = self.ui.aesCodeCmbx.currentIndex()
         self.channel.aes_multiple_key = self.ui.multiKeyCmbx.currentIndex()
-        self.channel.random_key = self.ui.randomKeyCmbx.currentIndex()
+        self.channel.aes_random_key = self.ui.randomKeyCmbx.currentIndex()
         self.channel.sms_forbid = self.ui.smsForbidCmbx.currentIndex()
         self.channel.send_talker_alias = self.ui.sendTalkerAliasChbx.isChecked()
         self.channel.call_confirmation = self.ui.callConfirmationChbx.isChecked()
@@ -6636,7 +6876,7 @@ class ChannelSettings(QMainWindow):
         self.channel.radio_id_idx = rid.id
         self.channel.radioid_obj = rid
         self.data_saved = True
-        self.parent.showMemoryChannels()
+        self.parent.listMemoryChannels()
         self.parent.data_saved = False
     def formatFrequency(self, frequency: str):
         freq: Decimal = Decimal(frequency)
@@ -6702,10 +6942,922 @@ class ChannelSettings(QMainWindow):
             self.ui.ctcssDcsEncodeToneCmbx.setDisabled(True) #setVisible(False)
         self.ui.ctcssDcsDecodeToneCmbx.blockSignals(False)
         self.ui.ctcssDcsEncodeToneCmbx.blockSignals(False)
+class GpsRoamingEditDialog(QDialog):
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_GpsRoamingDialog()
+        self.ui.setupUi(self)
+        self.index = index
+        self._tab_fixed = False
+        self.ui.buttonBox.accepted.connect(self.save)
+        self.ui.buttonBox.rejected.connect(self.close)
+        self.ui.prevBtn.clicked.connect(self.prevBtnClicked)
+        self.ui.nextBtn.clicked.connect(self.nextBtnClicked)
+        self.setupUI()
+        self.loadData()
+        self.ui.f1LatitudeDegreeCmbx.currentIndexChanged.connect(self.updateDegreeTab)
+        self.ui.f1LatitudeMinuteTxt.editingFinished.connect(self.onF1LatDegreeEditFinished)
+        self.ui.f1NsCmbx.currentIndexChanged.connect(self.updateDegreeTab)
+        self.ui.f1LongitudeDegreeCmbx.currentIndexChanged.connect(self.updateDegreeTab)
+        self.ui.f1LongitudeMinuteTxt.editingFinished.connect(self.onF1LongDegreeEditFinished)
+        self.ui.f1EwCmbx.currentIndexChanged.connect(self.updateDegreeTab)
+        self.ui.f2LatitudeDegreeTxt.editingFinished.connect(self.onF2LatDegreeEditFinished)
+        self.ui.f2NsCmbx.currentIndexChanged.connect(self.updateMinuteTab)
+        self.ui.f2LongitudeDegreeTxt.editingFinished.connect(self.onF2LongDegreeEditFinished)
+        self.ui.f2EwCmbx.currentIndexChanged.connect(self.updateMinuteTab)
+        self.ui.radiusTxt.editingFinished.connect(self.onRadiusEditingFinished)
+    def _focus_widget(self, w):
+        # Use the actual widget that receives focus (important for editable combos)
+        return w.focusProxy() or w
+    def _apply_tab_order(self):
+        # Optional: keep tab bar out of focus chain
+        self.ui.tabWidget.setFocusPolicy(Qt.NoFocus)
+        # Make sure everything is focusable
+        for w in (
+            self.ui.onOffCmbx, self.ui.zoneCmbx,
+            self.ui.f1LatitudeDegreeCmbx, self.ui.f1LatitudeMinuteTxt, self.ui.f1NsCmbx,
+            self.ui.f1LongitudeDegreeCmbx, self.ui.f1LongitudeMinuteTxt, self.ui.f1EwCmbx,
+            self.ui.radiusTxt
+        ):
+            self._focus_widget(w).setFocusPolicy(Qt.StrongFocus)
+        # Build the chain using focus widgets
+        chain = [
+            self.ui.onOffCmbx,
+            self.ui.zoneCmbx,
+            self.ui.f1LatitudeDegreeCmbx,
+            self.ui.f1LatitudeMinuteTxt,
+            self.ui.f1NsCmbx,
+            self.ui.f1LongitudeDegreeCmbx,
+            self.ui.f1LongitudeMinuteTxt,
+            self.ui.f1EwCmbx,
+            self.ui.radiusTxt,
+        ]
+        for a, b in zip(chain, chain[1:]):
+            self.setTabOrder(self._focus_widget(a), self._focus_widget(b))
+    def showEvent(self, e):
+        super().showEvent(e)
+        if not self._tab_fixed:
+            self._tab_fixed = True
+            self._apply_tab_order()
+    def setupUI(self):
+        # self.ui.tabWidget.setTabEnabled(1, False)
+        self.ui.onOffCmbx.addItems(Constants.OFF_ON)
+        self.ui.zoneCmbx.addItem('Off', None)
+        self.zone_idx_list = []
+        for zone in AnyToneMemory.zones:
+            if len(zone.channels) > 0:
+                self.zone_idx_list.append(zone.id)
+                self.ui.zoneCmbx.addItem(zone.name, zone)
+        self.ui.f1LatitudeDegreeCmbx.addItems([str(i) for i in range(91)])
+        self.ui.f1NsCmbx.addItems(['North', 'South'])
+        self.ui.f1LongitudeDegreeCmbx.addItems([str(i) for i in range(181)])
+        self.ui.f1EwCmbx.addItems(['East', 'West'])
+        self.ui.radiusTxt.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]*"), self))
+        self.ui.f1LatitudeMinuteTxt.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+(\.\d+)?"), self))
+        self.ui.f1LongitudeMinuteTxt.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+(\.\d+)?"), self))
+    def updateDegreeTab(self):
+        self.ui.f2LatitudeDegreeTxt.setText(self.formatDegree(self.degMinToDecimal(int(self.ui.f1LatitudeDegreeCmbx.currentIndex()), Decimal(self.ui.f1LatitudeMinuteTxt.text()))))
+        self.ui.f2NsCmbx.setCurrentIndex(self.ui.f1NsCmbx.currentIndex())
+        self.ui.f2LongitudeDegreeTxt.setText(self.formatDegree(self.degMinToDecimal(int(self.ui.f1LongitudeDegreeCmbx.currentIndex()), Decimal(self.ui.f1LongitudeMinuteTxt.text()))))
+        self.ui.f2EwCmbx.setCurrentIndex(self.ui.f1EwCmbx.currentIndex())
+    def updateMinuteTab(self):
+        deg, min = self.decMinToDegree(Decimal(self.ui.f2LatitudeDegreeTxt.text()))
+        self.ui.f1LatitudeDegreeCmbx.setCurrentIndex(deg)
+        self.ui.f1LatitudeMinuteTxt.setText(self.formatDegreeMinute(min))
+        deg, min = self.decMinToDegree(Decimal(self.ui.f2LongitudeDegreeTxt.text()))
+        self.ui.f1LongitudeDegreeCmbx.setCurrentIndex(deg)
+        self.ui.f1LongitudeMinuteTxt.setText(self.formatDegreeMinute(min))
+    def degMinToDecimal(self, deg: int, minutes: Decimal):
+        lat = deg + minutes / 60
+        return lat
+    def decMinToDegree(self, lat: Decimal):
+        degrees = int(abs(lat))
+        minutes = (abs(lat) - degrees) * 60
+        return degrees, minutes
+    def onRadiusEditingFinished(self):
+        if int(self.ui.radiusTxt.text()) < 10:
+            self.ui.radiusTxt.setText('10')
+        elif int(self.ui.radiusTxt.text()) > 100000:
+            self.ui.radiusTxt.setText('100000')
+    def onF1LatDegreeEditFinished(self):
+        self.ui.f1LatitudeMinuteTxt.setText(self.formatDegreeMinute(self.ui.f1LatitudeMinuteTxt.text()))
+        self.updateDegreeTab()
+    def onF1LongDegreeEditFinished(self):
+        self.ui.f1LongitudeMinuteTxt.setText(self.formatDegreeMinute(self.ui.f1LongitudeMinuteTxt.text()))
+        self.updateDegreeTab()
+    def onF2LatDegreeEditFinished(self):
+        self.ui.f2LatitudeDegreeTxt.setText(self.formatDegree(self.ui.f2LatitudeDegreeTxt.text()))
+        self.updateMinuteTab()
+    def onF2LongDegreeEditFinished(self):
+        self.ui.f2LongitudeDegreeTxt.setText(self.formatDegree(self.ui.f2LongitudeDegreeTxt.text()))
+        self.updateMinuteTab()
+    def loadData(self):
+        self.gps = AnyToneMemory.gps_roaming_list[self.index]
+        self.ui.onOffCmbx.setCurrentIndex(self.gps.enabled)
+        if self.gps.zone_idx == 0xff:
+            self.ui.zoneCmbx.setCurrentIndex(0)
+        else:
+            self.ui.zoneCmbx.setCurrentIndex(self.zone_idx_list.index(self.gps.zone_idx) + 1)
+        self.ui.f1LatitudeDegreeCmbx.setCurrentIndex(self.gps.lat_degree)
+        self.ui.f1LatitudeMinuteTxt.setText(self.formatDegreeMinute(str(self.gps.lat_minute) + '.' + str(self.gps.lat_minute_decimal)))
+        self.ui.f1NsCmbx.setCurrentIndex(self.gps.north_south)
+        self.ui.f1LongitudeDegreeCmbx.setCurrentIndex(self.gps.long_degree)
+        self.ui.f1LongitudeMinuteTxt.setText(self.formatDegreeMinute(str(self.gps.long_minute) + '.' + str(self.gps.long_minute_decimal)))
+        self.ui.f1EwCmbx.setCurrentIndex(self.gps.east_west)
+        self.ui.radiusTxt.setText(str(self.gps.radius))
+        self.updateDegreeTab()
+    def prevBtnClicked(self):
+        if self.index > 0:
+            self.index -= 1
+        self.loadData()
+    def nextBtnClicked(self):
+        self.index += 1
+        self.loadData()
+    def formatDegreeMinute(self, degree_str) -> str:
+        d = Decimal(degree_str)
+        if d > Decimal(59.99):
+            d = 59.99
+        return format(f'{d:.2f}')
+    def formatDegree(self, degree_str) -> str:
+        d = Decimal(degree_str)
+        if d > Decimal(90):
+            d = 90
+        return format(f'{d:.5f}')
+    def save(self):
+        self.gps.enabled = self.ui.onOffCmbx.currentIndex()
+        zone = self.ui.zoneCmbx.currentData()
+        if zone == None:
+            self.gps.zone_idx = 0xff
+        else:
+            self.gps.zone_idx = zone.id
+        self.gps.zone = zone
+        self.gps.lat_degree = self.ui.f1LatitudeDegreeCmbx.currentIndex()
+        lat_minute = self.ui.f1LatitudeMinuteTxt.text().split('.')
+        self.gps.lat_minute = int(lat_minute[0])
+        self.gps.lat_minute_decimal = int(lat_minute[1])
+        self.gps.north_south = self.ui.f1NsCmbx.currentIndex()
+        self.gps.long_degree = self.ui.f1LongitudeDegreeCmbx.currentIndex()
+        long_minute = self.ui.f1LongitudeMinuteTxt.text().split('.')
+        self.gps.long_minute = int(long_minute[0])
+        self.gps.long_minute_decimal = int(long_minute[1])
+        self.gps.east_west = self.ui.f1EwCmbx.currentIndex()
+        self.gps.radius = int(self.ui.radiusTxt.text())
+        self.parent.listGpsRoaming()
+class MainWindow(QMainWindow):
+    debug = False
+    theme = (0, 0)
+    SETTINGS_TREE = [
+        ['Common Settings',
+            [
+                'Channel',
+                'Zone',
+                'Scan List',
+                'Roaming Channel',
+                'Roaming Zone',
+                'FM',
+                'Auto Repeater Offset Frequencies',
+                'Device Information',
+                'Optional Settings',
+                'Alarm Settings',
+                'Local Information',
+                'Hot Key',
+                'APRS',
+                'GPS Roaming'
+            ]
+        ],
+        ['Digital',
+            [
+                'Master ID',
+                'Radio ID List',
+                'Contact/Talk Group',
+                'Prefabricated SMS',
+                'Receive Group Call List',
+                'Encryption Code',
+                'AES Encryption Code',
+                'ARC4 Encryption Code',
+                'Digital Contact List',
+                'Friends List',
+                'Talk Alias Settings'
+            ]
+        ],
+        ['Analog',
+            [
+                'Analog Address Book',
+                '5Tone Settings',
+                '2Tone Settings',
+                'DTMF Settings'
+            ]
+        ]
+    ]
+    DISABLED_SETTINGS = [
+        'Hot Key',
+        'APRS',
+        'Encryption Code',
+        'AES Encryption Code',
+        'ARC4 Encryption Code',
+        'Friends List',
+        'Talk Alias Settings',
+        'Analog Address Book',
+        '5Tone Settings',
+        '2Tone Settings',
+        'DTMF Settings'
+    ]
+    # Channel Undo/Redo variables
+    channel_change_history: list[list[Channel]] = []
+    channel_current_copy: list[Channel] = []
+    channel_clipboard: list[Channel] = []
+    channel_cut_list: list[int] = []
+    channel_change_index = 0
+    data_saved = True # If set False, a confirmation dialog will show when trying to close
+    memory = AnyToneMemory() # Codeplug data object
+    current_filename = None
+    com_port = ''
+    virtual_com_file = ''
+    read_write_options = 0
+    table_view_name = 'Channel'
+    # Window
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.setupUI()
+        self.setWindowTitle('AnyTone ' + Constants.RADIO_MODEL + ' CPS v' + Constants.FW_CPS_VERSION + ' (' + Constants.CPS_VERSION + ' build ' + Constants.CPS_BUILD_NUMBER + ')')
+        center = QScreen.availableGeometry(QApplication.primaryScreen()).center()
+        geo = self.frameGeometry()
+        geo.moveCenter(center)
+        self.move(geo.topLeft())
+        self.threadpool = QThreadPool()
+        # Load User Settings
+        self.com_port = UserSettings.comport
+        self.virtual_com_file = UserSettings.virtual_com_file
+        # SaveFile().open('new.atd2')
+        self.listMemoryChannels()
+        # self.forcedImport()
+    def showEvent(self, event: QShowEvent):
+        super().showEvent(event)
+        if not self.debug:
+            self.showAlphaWarningMessage()
+    def closeEvent(self, event: QCloseEvent):
+        if self.threadpool.activeThreadCount() > 0:
+            event.ignore()
+            return
+        if not self.data_saved:
+            # This method is called when a close event occurs
+            reply = QMessageBox.question(
+                self,
+                "Confirm Exit",
+                "Data has not been saved. Are you sure you want to close?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                event.accept()  # Accept the close event, allowing the widget to close
+            else:
+                event.ignore()  # Ignore the close event, preventing the widget from closing
+        else:
+            event.accept()
+    def setupUI(self):
+        # Top Menu Actions
+        ## File
+        self.ui.actionOpen.triggered.connect(self.openFile)
+        self.ui.actionSave_As.triggered.connect(self.saveFileAs)
+        self.ui.actionExit.triggered.connect(QCoreApplication.instance().quit)
+        ## Tool
+        self.ui.actionImport.triggered.connect(self.showImportDialog)
+        self.ui.actionExpert_Options.triggered.connect(self.showExpertOptionsDialog)
+        self.ui.actionBoot_Image.triggered.connect(self.showBootImageDialog)
+        self.ui.actionStandby_BK_Picture_1.triggered.connect(self.showBk1ImageDialog)
+        self.ui.actionStandby_Bk_Picture_2.triggered.connect(self.showBk2ImageDialog)
+        ## View
+        self.ui.actionTheme.triggered.connect(self.showThemeDialog)
+        # Top Buttons
+        self.ui.openFileBtn.clicked.connect(self.openFile)
+        self.ui.readRadioBtn.clicked.connect(self.showReadOptionsDialog)
+        self.ui.comPortBtn.clicked.connect(self.showComportDialog)
+        self.ui.writeRadioBtn.clicked.connect(self.showWriteOptionsDialog)
+        # Setup Settings Tree View
+        for idx, main_item in enumerate(self.SETTINGS_TREE):
+            main_tree_item = QTreeWidgetItem(self.ui.mainTreeWidget, [main_item[0]])
+            for sub_item in main_item[1]:
+                child_item = QTreeWidgetItem(main_tree_item, sub_item)
+                child_item.setText(0, sub_item)
+                if sub_item in self.DISABLED_SETTINGS:
+                    child_item.setDisabled(True)
+                if sub_item == 'Channel':
+                    self.ui.mainTreeWidget.setCurrentItem(child_item)
+                elif sub_item == 'Digital Contact List':
+                    for i in range(0, 500000, 20000):
+                        dcl_item = QTreeWidgetItem(child_item)
+                        dcl_item.setText(1, 'Digital Contact List')
+                        dcl_item.setText(0, str(i+1) + '---' + str(i+20000))
+            self.ui.mainTreeWidget.topLevelItem(idx).setExpanded(True)
+        self.ui.mainTreeWidget.itemClicked.connect(self.onTreeItemClicked)
+        # Main Table View
+        # self.ui.tableView.clicked.connect(self.onMainTableClicked)
+        self.ui.tableView.doubleClicked.connect(self.onMainTableDblClicked)
+        self.ui.tableView.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.ui.tableView.customContextMenuRequested.connect(self.showMainTableContextMenu)
+        self.channel_copy_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_C), self.ui.tableView)
+        self.channel_copy_shortcut.activated.connect(self.copySelectedChannels)
+        self.channel_cut_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_X), self.ui.tableView)
+        self.channel_cut_shortcut.activated.connect(self.cutSelectedChannels)
+        self.channel_paste_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_V), self.ui.tableView)
+        self.channel_paste_shortcut.activated.connect(self.pasteSelectedChannels)
+        self.channel_undo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Z), self.ui.tableView)
+        self.channel_undo_shortcut.activated.connect(self.undoChannels)
+        self.channel_redo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Y), self.ui.tableView)
+        self.channel_redo_shortcut.activated.connect(self.redoChannels)
+        self.channel_redo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_Z), self.ui.tableView)
+        self.channel_redo_shortcut.activated.connect(self.redoChannels)
+        self.channel_delete_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tableView)
+        self.channel_delete_shortcut.activated.connect(self.deleteSelectedChannels)
+        self.channel_edit_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Enter & Qt.Key.Key_Return), self.ui.tableView)
+        self.channel_edit_shortcut.activated.connect(self.editChannel)
+    def showAlphaWarningMessage(self):
+        msg = QMessageBox()
+        # msg.setStyleSheet("QLabel{min-width: 400px;}")
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Alpha Version Warning")
+        msg.setText("This program is currently in ALPHA STAGE and only compatible with FW v4.00")
+        msg.setInformativeText(
+            "Some features may not function correctly or may be incomplete.\n\n"
+            "Use with caution and report any issues you encounter.\n"
+        )
+        msg.setStandardButtons(QMessageBox.Ok)
+        horizontal_spacer = QSpacerItem(500, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout = msg.layout()
+        layout.addItem(horizontal_spacer, layout.rowCount(), 0, 1, layout.columnCount())
+        msg.exec()
+        msg.resize(400, 1200)
+    # CPS File
+    def openFile(self):
+        fname, _ = QFileDialog.getOpenFileName(
+        parent=self,
+            caption="Open...",
+            dir=".", # Current directory
+            filter="D878UVII Files (*.atd2);" # Filter examples
+        )
+        print(fname)
+        self.current_filename = fname
+        SaveFile().open(self.current_filename)
+    def saveFile(self):
+        pass
+    def saveFileAs(self):
+        fname, _ = QFileDialog.getSaveFileName(
+        parent=self,
+            caption="Save As...",
+            dir=".", # Current directory
+            filter="D878UVII Files (*.atd2);" # Filter examples
+        )
+        self.current_filename = fname
+        SaveFile().save(fname)
+    # Import Export
+    def showImportDialog(self):
+        self.import_dialog = ImportDialog(self)
+        self.import_dialog.show()
+    def importData(self, list):
+        self.ld = LoadingDialog(self)
+        self.ld.setWindowTitle("Importing...")
+        self.ld.show()
+        sfw = CSVImportWorker()
+        sfw.signals.finished.connect(self.importFinished)
+        sfw.signals.update1.connect(self.ld.updateMainbar)
+        sfw.signals.update2.connect(self.ld.updateSubbar)
+        for ld in list:
+            sfw.addImport(ld[0], ld[1])
+        self.threadpool.start(sfw)
+    def importFinished(self, memory: AnyToneMemory = None):
+        self.ld.close()
+        self.listMemoryChannels()
+    def forcedImport(self): # THIS IS FOR DBUG. REMOVE FOR PRODUCTION
+        file_list = []
+        data = b''
+        with open('exports/export.LST') as f:
+            data = f.read()
+        for l in data.split('\n'):
+            if l.startswith('#'):
+                continue
+            d = l.split(',')
+            if len(d) > 1:
+                import_id = int(d[0])
+                import_file = d[1].replace('"', '')
+                file_list.append((import_id, os.path.join('exports', import_file)))
+        self.importData(file_list)
+    # Serial
+    def showComportDialog(self):
+        self.com_port_dialog = ComportDialog(self)
+        self.com_port_dialog.show()
+    # Read From Radio
+    def showReadOptionsDialog(self):
+        self.rwo = ReadWriteOptionsDialog(self)
+        self.rwo.is_write = False
+        self.rwo.show()
+    def readFromRadio(self):
+        if self.com_port == '':
+            print("Error: Comport not set")
+        else:
+            ports = QSerialPortInfo.availablePorts()
+            comports = [port.portName() for port in ports]
+            if (self.com_port != 'VIRTUAL' and self.com_port not in comports) or (self.com_port == 'VIRTUAL' and self.virtual_com_file == ''):
+                print('COM Error: COM Port not available')
+                return
+            self.ld = LoadingDialog()
+            self.ld.setWindowTitle("Read From Radio")
+            self.ld.show()
+            self.adw = AnyToneSerialWorker()
+            if self.com_port == 'VIRTUAL':
+                self.adw.setVirtualFile(self.virtual_com_file)
+            else:
+                self.adw.setComport(self.com_port)
+            self.adw.setReadWriteOptions(self.read_write_options)
+            self.adw.is_write = False
+            self.adw.signals.finished.connect(self.readFromRadioFinished)
+            self.adw.signals.update1.connect(self.ld.updateMainbar)
+            self.adw.signals.update2.connect(self.ld.updateSubbar)
+            self.threadpool.start(self.adw)
+    def readFromRadioFinished(self, status: int):
+        self.ld.forceClose()
+        self.onTreeItemClicked(None)
+        self.adw.signals.finished.disconnect()
+        self.adw.signals.update1.disconnect()
+        self.adw.signals.update2.disconnect()
+        if status == AnyToneDevice.STATUS_COM_ERROR:
+            dialog = RetryConnectionDialog(self)
+            dialog.show()
+        elif status == AnyToneDevice.STATUS_DEVICE_MISMATCH:
+            dialog = BasicDialog(self)
+            dialog.ui.label.setText('Invalid Radio Model or Version')
+            dialog.show()
+        else:
+            QMessageBox.about(
+                self,
+                "Read From Radio",
+                "Read Complete"
+            )
+    def readLocalInformation(self):
+        if self.com_port == '':
+            print("Error: Comport not set")
+        else:
+            ports = QSerialPortInfo.availablePorts()
+            comports = [port.portName() for port in ports]
+            if (self.com_port != 'VIRTUAL' and self.com_port not in comports) or (self.com_port == 'VIRTUAL' and self.virtual_com_file == ''):
+                print('COM Error: COM Port not available')
+                return
+            if self.com_port == 'VIRTUAL':
+                dev = AnyToneVirtualDevice()
+                dev.loadBin(self.virtual_com_file)
+                local_info = dev.readLocalInfo()
+            else:
+                dev = AnyToneSerial()
+                if not dev.connect(self.com_port):
+                    QMessageBox.warning(
+                        self,
+                        "Serial Device",
+                        "Could not open to device."
+                    )
+                    return
+                dev.startProgMode()
+                local_info = dev.readLocalInfo()
+                dev.endProgMode()
+            LocalInformationDialog(self, local_info).show()
+    # Write To Radio
+    def showWriteOptionsDialog(self):
+        self.rwo = ReadWriteOptionsDialog(self)
+        self.rwo.is_write = True
+        self.rwo.show()
+    def writeToRadio(self):
+        if self.com_port == '':
+            print("Error: Comport not set")
+        else:
+            ports = QSerialPortInfo.availablePorts()
+            comports = [port.portName() for port in ports]
+            if (self.com_port != 'VIRTUAL' and self.com_port not in comports) or (self.com_port == 'VIRTUAL' and self.virtual_com_file == ''):
+                print('COM Error: COM Port not available')
+                return
+            self.ld = LoadingDialog()
+            self.ld.setWindowTitle("Read From Radio")
+            self.ld.show()
+            self.adw = AnyToneSerialWorker()
+            if self.com_port == 'VIRTUAL':
+                self.adw.setVirtualFile(self.virtual_com_file)
+            else:
+                self.adw.setComport(self.com_port)
+            self.adw.setReadWriteOptions(self.read_write_options)
+            self.adw.is_write = True
+            self.adw.signals.finished.connect(self.writeToRadioFinished)
+            self.adw.signals.update1.connect(self.ld.updateMainbar)
+            self.adw.signals.update2.connect(self.ld.updateSubbar)
+            self.threadpool.start(self.adw)
+    def writeToRadioFinished(self, status: int):
+        self.ld.forceClose()
+        self.onTreeItemClicked(None)
+        self.adw.signals.finished.disconnect()
+        self.adw.signals.update1.disconnect()
+        self.adw.signals.update2.disconnect()
+        if status == AnyToneDevice.STATUS_COM_ERROR:
+            dialog = RetryConnectionDialog(self)
+            dialog.show()
+        elif status == AnyToneDevice.STATUS_DEVICE_MISMATCH:
+            dialog = BasicDialog(self)
+            dialog.ui.label.setText('Invalid Radio Model or Version')
+            dialog.show()
+        else:
+            QMessageBox.about(
+                self,
+                "Write To Radio",
+                "Write Complete"
+            )
+    # Tree View
+    def onTreeItemClicked(self, item: QTreeWidgetItem):
+        if item == None:
+            item_text = self.table_view_name
+        else:
+            if item.isDisabled():
+                return
+            item_text = item.text(0)
+        if item_text == 'Channel':
+            self.table_view_name = item_text
+            self.listMemoryChannels()
+        elif item_text == 'Zone':
+            self.table_view_name = item_text
+            self.listZones()
+        elif item_text == 'Scan List':
+            self.table_view_name = item_text
+            self.listScanLists()
+        elif item_text == 'Roaming Channel':
+            self.table_view_name = item_text
+            self.listRoamingChannels()
+        elif item_text == 'Roaming Zone':
+            self.table_view_name = item_text
+            self.listRoamingZones()
+        elif item_text == 'FM':
+            self.table_view_name = item_text
+            self.listFM()
+        elif item_text == 'Auto Repeater Offset Frequencies':
+            self.table_view_name = item_text
+            self.listAutoRepeaterOffsetFrequencies()
+        elif item_text == 'Device Information':
+            self.showDeviceInformationDialog()
+        elif item_text == 'Alarm Settings':
+            self.showAlarmSettings()
+        elif item_text == "Local Information":
+            self.readLocalInformation()
+        elif item_text == 'Optional Settings':
+            self.showOptionalSettings()
+        elif item_text == 'GPS Roaming':
+            self.table_view_name = item_text
+            self.listGpsRoaming()
+        elif item_text == 'Master ID':
+            self.showMasterIdDialog()
+        elif item_text == 'Radio ID List':
+            self.table_view_name = item_text
+            self.listRadioId()
+        elif item_text == 'Contact/Talk Group':
+            self.table_view_name = item_text
+            self.listTalkgroups()
+        elif item_text == 'Prefabricated SMS':
+            self.table_view_name = item_text
+            self.listPrefabricatedSMS()
+        elif item_text == 'Receive Group Call List':
+            self.table_view_name = item_text
+            self.listReceiveGroupCallLists()
+        elif item.text(1) == 'Digital Contact List':
+            self.table_view_name = item_text
+            start_idx = int(item_text.split('---')[0]) - 1
+            self.listDigitalContact(start_idx)
+        else:
+            print(item.text(0))
+        self.ui.mainTreeWidget.clearSelection()
+    # Table View
+    def showMainTableContextMenu(self, pos: QPoint):
+        selected_table_view = self.ui.mainTreeWidget.selectedItems()[0].text(0)
+        if selected_table_view == 'Channel':
+            menu = QMenu(self)
+            # Add actions to the menu
+            edit_action = QAction("Edit", self, shortcut=QKeySequence("ENTER"))
+            cut_action = QAction("Cut", self, shortcut=QKeySequence("CTRL+X"))
+            copy_action = QAction("Copy", self, shortcut=QKeySequence("CTRL+C"))
+            paste_action = QAction("Paste", self, shortcut=QKeySequence("CTRL+V"))
+            delete_action = QAction("Delete", self, shortcut=QKeySequence("DEL"))
+            menu.addAction(edit_action)
+            menu.addAction(cut_action)
+            menu.addAction(copy_action)
+            menu.addAction(paste_action)
+            menu.addAction(delete_action)
+            # Connect actions to their respective functions
+            edit_action.triggered.connect(self.editChannel)
+            cut_action.triggered.connect(self.cutSelectedChannels)
+            copy_action.triggered.connect(self.copySelectedChannels)
+            paste_action.triggered.connect(self.pasteSelectedChannels)
+            delete_action.triggered.connect(self.deleteSelectedChannels)
+            menu.exec(self.ui.tableView.mapToGlobal(pos))
+    def onMainTableDblClicked(self, index):
+        row_index = index.row()
+        selected_table_view = self.table_view_name #ui.mainTreeWidget.selectedItems()[0].text(0)
+        if selected_table_view == 'Channel':
+            self.openChannelSettings(row_index)
+        elif selected_table_view == 'Zone':
+            self.openZoneEdit(row_index)
+        elif selected_table_view == 'Scan List':
+            self.openScanListEdit(row_index)
+        elif selected_table_view == 'Contact/Talk Group':
+            pass
+        elif selected_table_view == 'Radio ID List':
+            RadioIdEditDialog(self, row_index).show()
+        elif selected_table_view == "FM":
+            FmEditDialog(self, row_index).show()
+        elif selected_table_view == "GPS Roaming":
+            self.showGpsRoaming(row_index)
+        elif selected_table_view == "Auto Repeater Offset Frequencies":
+            AutoRepeaterOffsetFrequencyEditDialog(self, row_index).show()
+        elif selected_table_view == "Roaming Zone":
+            RoamingZoneEditDialog(self, row_index).show()
+        elif selected_table_view == "Roaming Channel":
+            RoamingChannelEditDialog(self, row_index).show()
+    # Channel
+    def copySelectedChannels(self):
+        selected_indexes = self.ui.tableView.selectedIndexes()
+        if not selected_indexes:
+            return
+        selected_rows = []
+        for si in selected_indexes:
+            if si.row() not in selected_rows:
+                selected_rows.append(si.row())
+        for i in selected_rows:
+            self.channel_clipboard.append(self.memory.channels[i])
+    def cutSelectedChannels(self):
+        selected_indexes = self.ui.tableView.selectionModel().selectedIndexes()
+        if not selected_indexes:
+            return
+        for si in selected_indexes:
+            self.ui.tableView.model().setData(si, QColor("silver"), Qt.ForegroundRole)
+            if si.row() not in self.channel_cut_list:
+                self.channel_cut_list.append(si.row())
+        for i in self.channel_cut_list:
+            self.channel_clipboard.append(self.memory.channels[i])
+        self.ui.tableView.clearSelection()
+    def pasteSelectedChannels(self):
+        selected_indexes = self.ui.tableView.selectedIndexes()
+        if not selected_indexes:
+            return
+        self.data_saved = False
+        self.updateMemoryChannelHistory()
+        selected_row = selected_indexes[0].row()
+        for i, ch in enumerate(self.channel_clipboard):
+            self.memory.channels[selected_row + i].copy(ch)
+        for i in self.channel_cut_list:
+            self.memory.channels[i].clear()
+        self.channel_cut_list.clear()
+        self.channel_clipboard.clear()
+        self.listMemoryChannels(False)
+    def deleteSelectedChannels(self):
+        selected_indexes = self.ui.tableView.selectedIndexes()
+        if not selected_indexes:
+            return
+        self.updateMemoryChannelHistory()
+        selected_rows = []
+        for si in selected_indexes:
+            if si.row() not in selected_rows:
+                selected_rows.append(si.row())
+        for i in selected_rows:
+            self.memory.channels[i].clear()
+        self.listMemoryChannels(False)
+    def undoChannels(self):
+        self.data_saved = False
+        # add current state
+        if self.channel_change_index == len(self.channel_change_history):
+            print('deepcopy')
+            self.channel_current_copy = copy.deepcopy(self.memory.channels)
+        if self.channel_change_index > 0:
+            self.channel_change_index -= 1
+        self.memory.channels = self.channel_change_history[self.channel_change_index]
+        self.listMemoryChannels(False)
+    def redoChannels(self):
+        if len(self.channel_change_history) == 0:
+            return
+        self.data_saved = False
+        if self.channel_change_index < len(self.channel_change_history) - 1:
+            self.channel_change_index += 1
+            self.memory.channels = self.channel_change_history[self.channel_change_index]
+        elif self.channel_change_index == len(self.channel_change_history) - 1:
+            self.channel_change_index += 1
+            self.memory.channels = self.channel_current_copy
+        self.listMemoryChannels(False)
+    def editChannel(self):
+        selected_indexes = self.ui.tableView.selectedIndexes()
+        if not selected_indexes:
+            return
+        selected_row = selected_indexes[0].row()
+        self.openChannelSettings(selected_row)
+    def updateMemoryChannelHistory(self):
+        del self.channel_change_history[self.channel_change_index:]
+        self.channel_change_history.append(copy.deepcopy(self.memory.channels))
+        self.channel_change_index += 1
+    # Table View Item Models
+    def listMemoryChannels(self, goto_top = True):
+        #Set column count first
+        self.model = ChannelItemModel()
+        # Create a QTableView and set the model
+        self.ui.tableView.verticalHeader().setVisible(False)
+        self.ui.tableView.setModel(self.model)
+        # header = self.ui.tableView.horizontalHeader()
+        # header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 100)
+        self.ui.tableView.setColumnWidth(2, 100)
+        self.ui.tableView.setColumnWidth(3, 100)
+        self.ui.tableView.setColumnWidth(4, 50)
+        self.ui.tableView.setColumnWidth(5, 50)
+        self.ui.tableView.setColumnWidth(6, 100)
+        self.ui.tableView.setColumnWidth(7, 100)
+        self.ui.tableView.setColumnWidth(8, 200)
+        self.ui.tableView.setColumnWidth(9, 150)
+        self.ui.tableView.setColumnWidth(10, 100)
+        self.ui.tableView.setColumnWidth(11, 100)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listZones(self, goto_top = True):
+        model = ZoneItemModel(self.memory.zones)
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 200)
+        self.ui.tableView.setColumnWidth(2, 100)
+        self.ui.tableView.setColumnWidth(3, 200)
+        self.ui.tableView.setColumnWidth(4, 200)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listScanLists(self, goto_top = True):
+        model = ScanListItemModel(self.memory.scanlist)
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 200)
+        self.ui.tableView.setColumnWidth(2, 70)
+        self.ui.tableView.setColumnWidth(3, 120)
+        self.ui.tableView.setColumnWidth(4, 120)
+        self.ui.tableView.setColumnWidth(5, 120)
+        self.ui.tableView.setColumnWidth(6, 120)
+        self.ui.tableView.setColumnWidth(7, 120)
+        self.ui.tableView.setColumnWidth(8, 120)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listRoamingChannels(self, goto_top = True):
+        model = RoamingChannelItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 70)
+        self.ui.tableView.setColumnWidth(2, 70)
+        self.ui.tableView.setColumnWidth(3, 70)
+        self.ui.tableView.setColumnWidth(4, 70)
+        self.ui.tableView.setColumnWidth(5, 200)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listRoamingZones(self, goto_top = True):
+        model = RoamingZoneItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 200)
+        self.ui.tableView.setColumnWidth(2, 70)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listFM(self, goto_top = True):
+        model = FMItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 100)
+        self.ui.tableView.setColumnWidth(2, 70)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listAutoRepeaterOffsetFrequencies(self, goto_top = True):
+        model = AutoRepeaterOffsetFrequencyItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 150)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listGpsRoaming(self, goto_top = True):
+        model = GpsRoamingItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 100)
+        self.ui.tableView.setColumnWidth(2, 100)
+        self.ui.tableView.setColumnWidth(3, 100)
+        self.ui.tableView.setColumnWidth(4, 100)
+        self.ui.tableView.setColumnWidth(5, 100)
+        self.ui.tableView.setColumnWidth(6, 100)
+        self.ui.tableView.setColumnWidth(7, 100)
+        self.ui.tableView.setColumnWidth(8, 100)
+        self.ui.tableView.setColumnWidth(9, 100)
+        self.ui.tableView.setColumnWidth(10, 100)
+        self.ui.tableView.setColumnWidth(11, 100)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listRadioId(self, goto_top = True):
+        model = RadioIdItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 70)
+        self.ui.tableView.setColumnWidth(2, 200)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listTalkgroups(self, goto_top = True):
+        model = TalkGroupItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 200)
+        self.ui.tableView.setColumnWidth(2, 100)
+        self.ui.tableView.setColumnWidth(3, 200)
+        self.ui.tableView.setColumnWidth(4, 200)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listPrefabricatedSMS(self, goto_top = True):
+        model = PrefabricatedSMSItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 800)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listReceiveGroupCallLists(self, goto_top = True):
+        model = ReceiveGroupCallItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 50)
+        self.ui.tableView.setColumnWidth(1, 200)
+        self.ui.tableView.setColumnWidth(2, 70)
+        self.ui.tableView.setColumnWidth(3, 800)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listDigitalContact(self, start_index, goto_top = True):
+        model = DigitalContactItemModel(start_index)
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 100)
+        self.ui.tableView.setColumnWidth(1, 100)
+        self.ui.tableView.setColumnWidth(2, 100)
+        self.ui.tableView.setColumnWidth(3, 150)
+        self.ui.tableView.setColumnWidth(4, 150)
+        self.ui.tableView.setColumnWidth(5, 100)
+        self.ui.tableView.setColumnWidth(6, 100)
+        self.ui.tableView.setColumnWidth(7, 150)
+        self.ui.tableView.setColumnWidth(8, 150)
+        self.ui.tableView.setColumnWidth(9, 150)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    #Dialogs
+    def openChannelSettings(self, index):
+        csw = ChannelSettings(self, index)
+        csw.show()
+    def openZoneEdit(self, index):
+        csw = ZoneEditDialog(self, index)
+        csw.show()    
+    def openScanListEdit(self, index):
+        sl = self.memory.scanlist[index]
+        sl.id = index
+        csw = ScanListDialog(self, sl)
+        csw.show()
+    def showDeviceInformationDialog(self):
+        self.device_information_dialog = DeviceInformationDialog(self)
+        self.device_information_dialog.show()
+    def showOptionalSettings(self):
+        osd = OptionalSettingsEditDialog(self)
+        osd.show()
+    def showAlarmSettings(self):
+        alarm_settings_dialog = AlarmSettingsDialog(self)
+        alarm_settings_dialog.show()
+    def showLocalInformation(self):
+        pass
+    def showHotKey(self):
+        pass
+    def showAprs(self):
+        pass
+    def showGpsRoaming(self, index):
+        GpsRoamingEditDialog(self, index).show()
+    def showMasterIdDialog(self):
+        MasterIdDialog(self).show()
+    def showBootImageDialog(self):
+        ImageDialog(self, ImageDialog.BOOT_IMAGE).show()
+    def showBk1ImageDialog(self):
+        ImageDialog(self, ImageDialog.BK1_IMAGE).show()
+    def showBk2ImageDialog(self):
+        ImageDialog(self, ImageDialog.BK2_IMAGE).show()
+    # Encryption Code
+    # AES Encryption Code
+    # ARC4 Encryption Code
+    # Digital Contact List
+    # Friends List
+    # Talk Alias Settings
+    # Analog Address Book
+    # 5Tone Setting
+    # 2Tone Setting
+    # DTMF Setting
+    # Misc Dialogs
+    def showExpertOptionsDialog(self):
+        self.expert_options = ExpertOptionsDialog(self)
+        self.expert_options.show()
+    def showThemeDialog(self):
+        self.td = ThemeDialog(self)
+        self.td.show()
 class DeviceInformationDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent:MainWindow = parent
         self.ui = Ui_DeviceInformationDialog()
         self.ui.setupUi(self)
         self.ui.modelTxt.setText(AnyToneMemory.radio_model)
@@ -6720,18 +7872,64 @@ class DeviceInformationDialog(QDialog):
         # cursor.mergeBlockFormat(block_format)
         # # Set the modified cursor back to the QPlainTextEdit
         # self.ui.bandTxt.setTextCursor(cursor)
+class AutoRepeaterOffsetFrequencyEditDialog(QDialog):
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_AutoRepeaterOffsetFrequencyEditDialog()
+        self.index = index
+        self.ui.setupUi(self)
+        self.ui.buttonBox.accepted.connect(self.save)
+        self.ui.buttonBox.rejected.connect(self.close)
+        self.ui.frequencyTxt.editingFinished.connect(self.formatFrequency)
+        self.ui.prevBtn.clicked.connect(self.prevBtnClicked)
+        self.ui.nextBtn.clicked.connect(self.nextBtnClicked)
+        if self.index == 0:
+            self.ui.prevBtn.setDisabled(True)
+        if self.index >= (len(AnyToneMemory.auto_repeater_freq_list) - 1):
+            self.ui.nextBtn.setDisabled(True)
+        self.setupUI()
+        self.loadData()
+    def setupUI(self):
+        pass
+    def loadData(self):
+        self.setWindowTitle('Auto Repeater Offset Frequency---' + str(self.index+1))
+        self.arf = AnyToneMemory.auto_repeater_freq_list[self.index]
+        self.ui.frequencyTxt.setText(self.arf.getFrequencyStr())
+    def save(self):
+        self.arf.frequency = Decimal(self.ui.frequencyTxt.text()) * 100000
+        self.parent.listAutoRepeaterOffsetFrequencies(False)
+    def nextBtnClicked(self):
+        self.save()
+        if self.index >= (len(AnyToneMemory.auto_repeater_freq_list) - 2):
+            self.ui.nextBtn.setDisabled(True)
+        if self.index < len(AnyToneMemory.auto_repeater_freq_list) - 1:
+            self.index += 1
+            self.loadData()
+            self.ui.prevBtn.setDisabled(False)
+    def prevBtnClicked(self):
+        self.save()
+        if self.index <= 1:
+            self.ui.prevBtn.setDisabled(True)
+        if self.index > 0:
+            self.index -= 1
+            self.loadData()
+            self.ui.nextBtn.setDisabled(False)
+    def formatFrequency(self):
+        txt  = self.ui.frequencyTxt.text()
+        self.ui.frequencyTxt.setText(format(f'{Decimal(txt):.5f}'))
 class HotKeySettingsDialog(QDialog):
     show_all = False
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_HotKeySettingsDialog()
         self.ui.setupUi(self)
 class ContactSelectionDialog(QDialog):
     last_selected_tg_item: QStandardItem = None
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent:ChannelSettings = parent
         self.ui = Ui_ContactSelectDialog()
         self.ui.setupUi(self)
         self.setupUI()
@@ -6771,7 +7969,7 @@ class AlarmSettingsDialog(QDialog):
     show_all = False
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_AlertSettingsDialog()
         self.ui.setupUi(self)
         self.digital_channel_list: list[Channel] = []
@@ -6901,706 +8099,11 @@ class BasicDialog(QDialog):
         self.ui = Ui_BasicDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.accepted.connect(self.close)
-class MainWindow(QMainWindow):
-    debug = False
-    theme = (0, 0)
-    SETTINGS_TREE = [
-        ['Common Settings',
-            [
-                'Channel',
-                'Zone',
-                'Scan List',
-                'Roaming Channel',
-                'Roaming Zone',
-                'FM',
-                'Auto Repeater Offset Frequencies',
-                'Device Information',
-                'Optional Settings',
-                'Alarm Settings',
-                'Local Information',
-                'Hot Key',
-                'APRS',
-                'GPS Roaming'
-            ]
-        ],
-        ['Digital',
-            [
-                'Master ID',
-                'Radio ID List',
-                'Contact/Talk Group',
-                'Prefabricated SMS',
-                'Receive Group Call List',
-                'Encryption Code',
-                'AES Encryption Code',
-                'ARC4 Encryption Code',
-                'Digital Contact List',
-                'Friends List',
-                'Talk Alias Settings'
-            ]
-        ],
-        ['Analog',
-            [
-                'Analog Address Book',
-                '5Tone Settings',
-                '2Tone Settings',
-                'DTMF Settings'
-            ]
-        ]
-    ]
-    DISABLED_SETTINGS = [
-        'Local Information',
-        'Hot Key',
-        'APRS',
-        'Encryption Code',
-        'AES Encryption Code',
-        'ARC4 Encryption Code',
-        'Friends List',
-        'Talk Alias Settings',
-        'Analog Address Book',
-        '5Tone Settings',
-        '2Tone Settings',
-        'DTMF Settings'
-    ]
-    # Channel Undo/Redo variables
-    channel_change_history: list[list[Channel]] = []
-    channel_current_copy: list[Channel] = []
-    channel_clipboard: list[Channel] = []
-    channel_cut_list: list[int] = []
-    channel_change_index = 0
-    data_saved = True # If set False, a confirmation dialog will show when trying to close
-    memory = AnyToneMemory() # Codeplug data object
-    current_filename = None
-    com_port = ''
-    virtual_com_file = ''
-    read_write_options = 0
-    table_view_name = ''
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
-        self.setupUI()
-        self.setWindowTitle('AnyTone ' + Constants.RADIO_MODEL + ' CPS v' + Constants.FW_CPS_VERSION + ' (' + Constants.CPS_VERSION + ' build ' + Constants.CPS_BUILD_NUMBER + ')')
-        center = QScreen.availableGeometry(QApplication.primaryScreen()).center()
-        geo = self.frameGeometry()
-        geo.moveCenter(center)
-        self.move(geo.topLeft())
-        self.threadpool = QThreadPool()
-        # Load User Settings
-        self.com_port = UserSettings.comport
-        self.virtual_com_file = UserSettings.virtual_com_file
-        # SaveFile().open('new.atd2')
-        self.showMemoryChannels()
-        # self.forcedImport()
-    def showAlphaWarningMessage(self):
-        msg = QMessageBox()
-        # msg.setStyleSheet("QLabel{min-width: 400px;}")
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("Alpha Version Warning")
-        msg.setText("This program is currently in ALPHA STAGE and only compatible with FW v4.00")
-        msg.setInformativeText(
-            "Some features may not function correctly or may be incomplete.\n\n"
-            "Use with caution and report any issues you encounter.\n"
-        )
-        msg.setStandardButtons(QMessageBox.Ok)
-        horizontal_spacer = QSpacerItem(500, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout = msg.layout()
-        layout.addItem(horizontal_spacer, layout.rowCount(), 0, 1, layout.columnCount())
-        msg.exec()
-        msg.resize(400, 1200)
-    def forcedImport(self): # THIS IS FOR DBUG. REMOVE FOR PRODUCTION
-        file_list = []
-        data = b''
-        with open('exports/export.LST') as f:
-            data = f.read()
-        for l in data.split('\n'):
-            if l.startswith('#'):
-                continue
-            d = l.split(',')
-            if len(d) > 1:
-                import_id = int(d[0])
-                import_file = d[1].replace('"', '')
-                file_list.append((import_id, os.path.join('exports', import_file)))
-        self.importData(file_list)
-    def showEvent(self, event: QShowEvent):
-        super().showEvent(event)
-        if not self.debug:
-            self.showAlphaWarningMessage()
-    def setupUI(self):
-        # Top Menu Actions
-        ## File
-        self.ui.actionOpen.triggered.connect(self.openFile)
-        self.ui.actionSave_As.triggered.connect(self.saveFileAs)
-        self.ui.actionExit.triggered.connect(QCoreApplication.instance().quit)
-        ## Tool
-        self.ui.actionImport.triggered.connect(self.showImportDialog)
-        self.ui.actionExpert_Options.triggered.connect(self.showExpertOptionsDialog)
-        ## View
-        self.ui.actionTheme.triggered.connect(self.showThemeDialog)
-        # Top Buttons
-        self.ui.openFileBtn.clicked.connect(self.openFile)
-        self.ui.readRadioBtn.clicked.connect(self.showReadOptionsDialog)
-        self.ui.comPortBtn.clicked.connect(self.showComportDialog)
-        self.ui.writeRadioBtn.clicked.connect(self.showWriteOptionsDialog)
-        # Setup Settings Tree View
-        for idx, main_item in enumerate(self.SETTINGS_TREE):
-            main_tree_item = QTreeWidgetItem(self.ui.mainTreeWidget, [main_item[0]])
-            for sub_item in main_item[1]:
-                child_item = QTreeWidgetItem(main_tree_item, sub_item)
-                child_item.setText(0, sub_item)
-                if sub_item in self.DISABLED_SETTINGS:
-                    child_item.setDisabled(True)
-                if sub_item == 'Channel':
-                    self.ui.mainTreeWidget.setCurrentItem(child_item)
-                elif sub_item == 'Digital Contact List':
-                    for i in range(0, 500000, 20000):
-                        dcl_item = QTreeWidgetItem(child_item)
-                        dcl_item.setText(1, 'Digital Contact List')
-                        dcl_item.setText(0, str(i+1) + '---' + str(i+20000))
-            self.ui.mainTreeWidget.topLevelItem(idx).setExpanded(True)
-        self.ui.mainTreeWidget.itemClicked.connect(self.onTreeItemClicked)
-        # Main Table View
-        # self.ui.tableView.clicked.connect(self.onMainTableClicked)
-        self.ui.tableView.doubleClicked.connect(self.onMainTableDblClicked)
-        self.ui.tableView.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.ui.tableView.customContextMenuRequested.connect(self.showMainTableContextMenu)
-        self.channel_copy_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_C), self.ui.tableView)
-        self.channel_copy_shortcut.activated.connect(self.copySelectedChannels)
-        self.channel_cut_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_X), self.ui.tableView)
-        self.channel_cut_shortcut.activated.connect(self.cutSelectedChannels)
-        self.channel_paste_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_V), self.ui.tableView)
-        self.channel_paste_shortcut.activated.connect(self.pasteSelectedChannels)
-        self.channel_undo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Z), self.ui.tableView)
-        self.channel_undo_shortcut.activated.connect(self.undoChannels)
-        self.channel_redo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Y), self.ui.tableView)
-        self.channel_redo_shortcut.activated.connect(self.redoChannels)
-        self.channel_redo_shortcut = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_Z), self.ui.tableView)
-        self.channel_redo_shortcut.activated.connect(self.redoChannels)
-        self.channel_delete_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tableView)
-        self.channel_delete_shortcut.activated.connect(self.deleteSelectedChannels)
-        self.channel_edit_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Enter & Qt.Key.Key_Return), self.ui.tableView)
-        self.channel_edit_shortcut.activated.connect(self.editChannel)
-    def showExpertOptionsDialog(self):
-        self.expert_options = ExpertOptionsDialog(self)
-        self.expert_options.show()
-    def showImportDialog(self):
-        self.import_dialog = ImportDialog(self)
-        self.import_dialog.show()
-    def importData(self, list):
-        self.ld = LoadingDialog(self)
-        self.ld.setWindowTitle("Importing...")
-        self.ld.show()
-        sfw = CSVImportWorker()
-        sfw.signals.finished.connect(self.importFinished)
-        sfw.signals.update1.connect(self.ld.updateMainbar)
-        sfw.signals.update2.connect(self.ld.updateSubbar)
-        for ld in list:
-            sfw.addImport(ld[0], ld[1])
-        self.threadpool.start(sfw)
-    def importFinished(self, memory: AnyToneMemory = None):
-        self.ld.close()
-        self.showMemoryChannels()
-    def openFile(self):
-        fname, _ = QFileDialog.getOpenFileName(
-        parent=self,
-            caption="Open...",
-            dir=".", # Current directory
-            filter="D878UVII Files (*.atd2);" # Filter examples
-        )
-        print(fname)
-        self.current_filename = fname
-        SaveFile().open(self.current_filename)
-    def saveFile(self):
-        pass
-    def saveFileAs(self):
-        fname, _ = QFileDialog.getSaveFileName(
-        parent=self,
-            caption="Save As...",
-            dir=".", # Current directory
-            filter="D878UVII Files (*.atd2);" # Filter examples
-        )
-        self.current_filename = fname
-        SaveFile().save(fname)
-    def closeEvent(self, event: QCloseEvent):
-        if self.threadpool.activeThreadCount() > 0:
-            event.ignore()
-            return
-        if not self.data_saved:
-            # This method is called when a close event occurs
-            reply = QMessageBox.question(
-                self,
-                "Confirm Exit",
-                "Data has not been saved. Are you sure you want to close?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.Yes:
-                event.accept()  # Accept the close event, allowing the widget to close
-            else:
-                event.ignore()  # Ignore the close event, preventing the widget from closing
-        else:
-            event.accept()
-    def showComportDialog(self):
-        self.com_port_dialog = ComportDialog(self)
-        self.com_port_dialog.show()
-    def showThemeDialog(self):
-        self.td = ThemeDialog(self)
-        self.td.show()
-    # Read/Write From Radio
-    def showReadOptionsDialog(self):
-        self.rwo = ReadWriteOptionsDialog(self)
-        self.rwo.is_write = False
-        self.rwo.show()
-    def showWriteOptionsDialog(self):
-        self.rwo = ReadWriteOptionsDialog(self)
-        self.rwo.is_write = True
-        self.rwo.show()
-    def readFromRadio(self):
-        if self.com_port == '':
-            print("Error: Comport not set")
-        else:
-            ports = QSerialPortInfo.availablePorts()
-            comports = [port.portName() for port in ports]
-            if (self.com_port != 'VIRTUAL' and self.com_port not in comports) or (self.com_port == 'VIRTUAL' and self.virtual_com_file == ''):
-                print('COM Error: COM Port not available')
-                return
-            self.ld = LoadingDialog()
-            self.ld.setWindowTitle("Read From Radio")
-            self.ld.show()
-            self.adw = AnyToneSerialWorker()
-            if self.com_port == 'VIRTUAL':
-                self.adw.setVirtualFile(self.virtual_com_file)
-            else:
-                self.adw.setComport(self.com_port)
-            self.adw.setReadWriteOptions(self.read_write_options)
-            self.adw.is_write = False
-            self.adw.signals.finished.connect(self.readFromRadioFinished)
-            self.adw.signals.update1.connect(self.ld.updateMainbar)
-            self.adw.signals.update2.connect(self.ld.updateSubbar)
-            self.threadpool.start(self.adw)
-    def writeToRadio(self):
-        if self.com_port == '':
-            print("Error: Comport not set")
-        else:
-            ports = QSerialPortInfo.availablePorts()
-            comports = [port.portName() for port in ports]
-            if (self.com_port != 'VIRTUAL' and self.com_port not in comports) or (self.com_port == 'VIRTUAL' and self.virtual_com_file == ''):
-                print('COM Error: COM Port not available')
-                return
-            self.ld = LoadingDialog()
-            self.ld.setWindowTitle("Read From Radio")
-            self.ld.show()
-            self.adw = AnyToneSerialWorker()
-            if self.com_port == 'VIRTUAL':
-                self.adw.setVirtualFile(self.virtual_com_file)
-            else:
-                self.adw.setComport(self.com_port)
-            self.adw.setReadWriteOptions(self.read_write_options)
-            self.adw.is_write = True
-            self.adw.signals.finished.connect(self.writeToRadioFinished)
-            self.adw.signals.update1.connect(self.ld.updateMainbar)
-            self.adw.signals.update2.connect(self.ld.updateSubbar)
-            self.threadpool.start(self.adw)
-    def readFromRadioFinished(self, status: int):
-        self.ld.forceClose()
-        self.onTreeItemClicked(self.ui.mainTreeWidget.itemAt(0,0).child(0))
-        self.adw.signals.finished.disconnect()
-        self.adw.signals.update1.disconnect()
-        self.adw.signals.update2.disconnect()
-        if status == AnyToneDevice.STATUS_COM_ERROR:
-            dialog = RetryConnectionDialog(self)
-            dialog.show()
-        elif status == AnyToneDevice.STATUS_DEVICE_MISMATCH:
-            dialog = BasicDialog(self)
-            dialog.ui.label.setText('Invalid Radio Model or Version')
-            dialog.show()
-        else:
-            QMessageBox.about(
-                self,
-                "Read From Radio",
-                "Read Complete"
-            )
-    def writeToRadioFinished(self, status: int):
-        self.ld.forceClose()
-        self.onTreeItemClicked(self.ui.mainTreeWidget.itemAt(0,0).child(0))
-        self.adw.signals.finished.disconnect()
-        self.adw.signals.update1.disconnect()
-        self.adw.signals.update2.disconnect()
-        if status == AnyToneDevice.STATUS_COM_ERROR:
-            dialog = RetryConnectionDialog(self)
-            dialog.show()
-        elif status == AnyToneDevice.STATUS_DEVICE_MISMATCH:
-            dialog = BasicDialog(self)
-            dialog.ui.label.setText('Invalid Radio Model or Version')
-            dialog.show()
-        else:
-            QMessageBox.about(
-                self,
-                "Write To Radio",
-                "Write Complete"
-            )
-    # Tree View
-    def onTreeItemClicked(self, item: QTreeWidgetItem):
-        if item.isDisabled():
-            return
-        item_text = item.text(0)
-        if item_text == 'Channel':
-            self.table_view_name = item_text
-            self.showMemoryChannels()
-        elif item_text == 'Zone':
-            self.table_view_name = item_text
-            self.showZones()
-        elif item_text == 'Scan List':
-            self.table_view_name = item_text
-            self.showScanLists()
-        elif item_text == 'Roaming Channel':
-            self.table_view_name = item_text
-            self.showRoamingChannelList()
-        elif item_text == 'Roaming Zone':
-            self.table_view_name = item_text
-            self.showRoamingZoneList()
-        elif item_text == 'FM':
-            self.table_view_name = item_text
-            self.showFMList()
-        elif item_text == 'Auto Repeater Offset Frequencies':
-            self.table_view_name = item_text
-            self.showAutoRepeaterOffsetFrequencies()
-        elif item_text == 'Device Information':
-            self.showDeviceInformationDialog()
-        elif item_text == 'Alarm Settings':
-            self.showAlarmSettings()
-        elif item_text == 'Optional Settings':
-            self.showOptionalSettings()
-        elif item_text == 'GPS Roaming':
-            self.table_view_name = item_text
-            self.showGpsRoamingList()
-        elif item_text == 'Master ID':
-            self.showMasterIdDialog()
-        elif item_text == 'Radio ID List':
-            self.table_view_name = item_text
-            self.showRadioIdList()
-        elif item_text == 'Contact/Talk Group':
-            self.table_view_name = item_text
-            self.showTalkgroups()
-        elif item_text == 'Prefabricated SMS':
-            self.table_view_name = item_text
-            self.showPrefabricatedSMSList()
-        elif item_text == 'Receive Group Call List':
-            self.table_view_name = item_text
-            self.showReceiveGroupCallList()
-        elif item.text(1) == 'Digital Contact List':
-            self.table_view_name = item_text
-            start_idx = int(item_text.split('---')[0]) - 1
-            self.showDigitalContactList(start_idx)
-        else:
-            print(item.text(0))
-        self.ui.mainTreeWidget.clearSelection()
-    # Table View
-    def showMainTableContextMenu(self, pos: QPoint):
-        selected_table_view = self.ui.mainTreeWidget.selectedItems()[0].text(0)
-        if selected_table_view == 'Channel':
-            menu = QMenu(self)
-            # Add actions to the menu
-            edit_action = QAction("Edit", self, shortcut=QKeySequence("ENTER"))
-            cut_action = QAction("Cut", self, shortcut=QKeySequence("CTRL+X"))
-            copy_action = QAction("Copy", self, shortcut=QKeySequence("CTRL+C"))
-            paste_action = QAction("Paste", self, shortcut=QKeySequence("CTRL+V"))
-            delete_action = QAction("Delete", self, shortcut=QKeySequence("DEL"))
-            menu.addAction(edit_action)
-            menu.addAction(cut_action)
-            menu.addAction(copy_action)
-            menu.addAction(paste_action)
-            menu.addAction(delete_action)
-            # Connect actions to their respective functions
-            edit_action.triggered.connect(self.editChannel)
-            cut_action.triggered.connect(self.cutSelectedChannels)
-            copy_action.triggered.connect(self.copySelectedChannels)
-            paste_action.triggered.connect(self.pasteSelectedChannels)
-            delete_action.triggered.connect(self.deleteSelectedChannels)
-            menu.exec(self.ui.tableView.mapToGlobal(pos))
-    def onMainTableDblClicked(self, index):
-        row_index = index.row()
-        selected_table_view = self.table_view_name #ui.mainTreeWidget.selectedItems()[0].text(0)
-        if selected_table_view == 'Channel':
-            self.openChannelSettings(row_index)
-        elif selected_table_view == 'Zone':
-            self.openZoneEdit(row_index)
-        elif selected_table_view == 'Scan List':
-            self.openScanListEdit(row_index)
-        elif selected_table_view == 'Contact/Talk Group':
-            pass
-        elif selected_table_view == 'Radio ID List':
-            RadioIdEditDialog(self, row_index).show()
-        elif selected_table_view == "FM":
-            FmEditDialog(self, row_index).show()
-    # Channel
-    def copySelectedChannels(self):
-        selected_indexes = self.ui.tableView.selectedIndexes()
-        if not selected_indexes:
-            return
-        selected_rows = []
-        for si in selected_indexes:
-            if si.row() not in selected_rows:
-                selected_rows.append(si.row())
-        for i in selected_rows:
-            self.channel_clipboard.append(self.memory.channels[i])
-    def cutSelectedChannels(self):
-        selected_indexes = self.ui.tableView.selectionModel().selectedIndexes()
-        if not selected_indexes:
-            return
-        for si in selected_indexes:
-            self.ui.tableView.model().setData(si, QColor("silver"), Qt.ForegroundRole)
-            if si.row() not in self.channel_cut_list:
-                self.channel_cut_list.append(si.row())
-        for i in self.channel_cut_list:
-            self.channel_clipboard.append(self.memory.channels[i])
-        self.ui.tableView.clearSelection()
-    def pasteSelectedChannels(self):
-        selected_indexes = self.ui.tableView.selectedIndexes()
-        if not selected_indexes:
-            return
-        self.data_saved = False
-        self.updateMemoryChannelHistory()
-        selected_row = selected_indexes[0].row()
-        for i in self.channel_cut_list:
-            self.memory.channels[i].clear()
-        self.channel_cut_list.clear()
-        for i, ch in enumerate(self.channel_clipboard):
-            self.memory.channels[selected_row + i] = ch
-        self.channel_clipboard.clear()
-        self.showMemoryChannels()
-    def deleteSelectedChannels(self):
-        selected_indexes = self.ui.tableView.selectedIndexes()
-        if not selected_indexes:
-            return
-        self.updateMemoryChannelHistory()
-        selected_rows = []
-        for si in selected_indexes:
-            if si.row() not in selected_rows:
-                selected_rows.append(si.row())
-        for i in selected_rows:
-            self.memory.channels[i].clear()
-        self.showMemoryChannels()
-    def undoChannels(self):
-        self.data_saved = False
-        # add current state
-        if self.channel_change_index == len(self.channel_change_history):
-            print('deepcopy')
-            self.channel_current_copy = copy.deepcopy(self.memory.channels)
-        if self.channel_change_index > 0:
-            self.channel_change_index -= 1
-        self.memory.channels = self.channel_change_history[self.channel_change_index]
-        self.showMemoryChannels()
-    def redoChannels(self):
-        if len(self.channel_change_history) == 0:
-            return
-        self.data_saved = False
-        if self.channel_change_index < len(self.channel_change_history) - 1:
-            self.channel_change_index += 1
-            self.memory.channels = self.channel_change_history[self.channel_change_index]
-        elif self.channel_change_index == len(self.channel_change_history) - 1:
-            self.channel_change_index += 1
-            self.memory.channels = self.channel_current_copy
-        self.showMemoryChannels()
-    def editChannel(self):
-        selected_indexes = self.ui.tableView.selectedIndexes()
-        if not selected_indexes:
-            return
-        selected_row = selected_indexes[0].row()
-        self.openChannelSettings(selected_row)
-    def updateMemoryChannelHistory(self):
-        del self.channel_change_history[self.channel_change_index:]
-        self.channel_change_history.append(copy.deepcopy(self.memory.channels))
-        self.channel_change_index += 1
-    def openChannelSettings(self, index):
-        csw = ChannelSettings(self, index)
-        csw.show()
-    def showMemoryChannels(self):
-        #Set column count first
-        self.model = ChannelItemModel()
-        # Create a QTableView and set the model
-        self.ui.tableView.verticalHeader().setVisible(False)
-        self.ui.tableView.setModel(self.model)
-        # header = self.ui.tableView.horizontalHeader()
-        # header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 100)
-        self.ui.tableView.setColumnWidth(2, 100)
-        self.ui.tableView.setColumnWidth(3, 100)
-        self.ui.tableView.setColumnWidth(4, 50)
-        self.ui.tableView.setColumnWidth(5, 50)
-        self.ui.tableView.setColumnWidth(6, 100)
-        self.ui.tableView.setColumnWidth(7, 100)
-        self.ui.tableView.setColumnWidth(8, 200)
-        self.ui.tableView.setColumnWidth(9, 150)
-        self.ui.tableView.setColumnWidth(10, 100)
-        self.ui.tableView.setColumnWidth(11, 100)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Zone
-    def showZones(self):
-        model = ZoneItemModel(self.memory.zones)
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 200)
-        self.ui.tableView.setColumnWidth(2, 100)
-        self.ui.tableView.setColumnWidth(3, 200)
-        self.ui.tableView.setColumnWidth(4, 200)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    def openZoneEdit(self, index):
-        csw = ZoneEditDialog(self, index)
-        csw.show()
-    # Scan List  
-    def showScanLists(self):
-        model = ScanListItemModel(self.memory.scanlist)
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 200)
-        self.ui.tableView.setColumnWidth(2, 70)
-        self.ui.tableView.setColumnWidth(3, 120)
-        self.ui.tableView.setColumnWidth(4, 120)
-        self.ui.tableView.setColumnWidth(5, 120)
-        self.ui.tableView.setColumnWidth(6, 120)
-        self.ui.tableView.setColumnWidth(7, 120)
-        self.ui.tableView.setColumnWidth(8, 120)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    def openScanListEdit(self, index):
-        sl = self.memory.scanlist[index]
-        sl.id = index
-        csw = ScanListDialog(self, sl)
-        csw.show()
-    # Roaming Channel
-    def showRoamingChannelList(self):
-        model = RoamingChannelItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 70)
-        self.ui.tableView.setColumnWidth(2, 70)
-        self.ui.tableView.setColumnWidth(3, 70)
-        self.ui.tableView.setColumnWidth(4, 70)
-        self.ui.tableView.setColumnWidth(5, 200)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Roaming Zone
-    def showRoamingZoneList(self):
-        model = RoamingZoneItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 200)
-        self.ui.tableView.setColumnWidth(2, 70)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # FM
-    def showFMList(self, goto_top = True):
-        model = FMItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 100)
-        self.ui.tableView.setColumnWidth(2, 70)
-        if goto_top:
-            self.ui.tableView.verticalScrollBar().setValue(0)
-    # Auto Repeater Offset Freq
-    def showAutoRepeaterOffsetFrequencies(self):
-        model = AutoRepeaterOffsetFrequencyItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 150)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Device Information
-    def showDeviceInformationDialog(self):
-        self.device_information_dialog = DeviceInformationDialog(self)
-        self.device_information_dialog.show()
-    # Optional Settings
-    def showOptionalSettings(self):
-        osd = OptionalSettingsEditDialog(self)
-        osd.show()
-    # Alarm Setting
-    def showAlarmSettings(self):
-        alarm_settings_dialog = AlarmSettingsDialog(self)
-        alarm_settings_dialog.show()
-    # Local Information
-    # Hot Key
-    # APRS
-    # GPS Roaming
-    def showGpsRoamingList(self):
-        model = GpsRoamingItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 100)
-        self.ui.tableView.setColumnWidth(2, 100)
-        self.ui.tableView.setColumnWidth(3, 100)
-        self.ui.tableView.setColumnWidth(4, 100)
-        self.ui.tableView.setColumnWidth(5, 100)
-        self.ui.tableView.setColumnWidth(6, 100)
-        self.ui.tableView.setColumnWidth(7, 100)
-        self.ui.tableView.setColumnWidth(8, 100)
-        self.ui.tableView.setColumnWidth(9, 100)
-        self.ui.tableView.setColumnWidth(10, 100)
-        self.ui.tableView.setColumnWidth(11, 100)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Master ID
-    def showMasterIdDialog(self):
-        MasterIdDialog(self).show()
-        # print(AnyToneMemory.master_radioid.dmr_id, AnyToneMemory.master_radioid.name, AnyToneMemory.master_radioid.used)
-    # Radio ID
-    def showRadioIdList(self, goto_top = True):
-        model = RadioIdItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 70)
-        self.ui.tableView.setColumnWidth(2, 200)
-        if goto_top:
-            self.ui.tableView.verticalScrollBar().setValue(0)
-    # Talkgroup
-    def showTalkgroups(self):
-        model = TalkGroupItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 200)
-        self.ui.tableView.setColumnWidth(2, 100)
-        self.ui.tableView.setColumnWidth(3, 200)
-        self.ui.tableView.setColumnWidth(4, 200)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Prefab SMS
-    def showPrefabricatedSMSList(self):
-        model = PrefabricatedSMSItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 800)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Receive Group Call List
-    def showReceiveGroupCallList(self):
-        model = ReceiveGroupCallItemModel()
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 50)
-        self.ui.tableView.setColumnWidth(1, 200)
-        self.ui.tableView.setColumnWidth(2, 70)
-        self.ui.tableView.setColumnWidth(3, 800)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Encryption Code
-    # AES Encryption Code
-    # ARC4 Encryption Code
-    # Digital Contact List
-    def showDigitalContactList(self, start_index):
-        model = DigitalContactItemModel(start_index)
-        self.ui.tableView.setModel(model)
-        self.ui.tableView.setColumnWidth(0, 100)
-        self.ui.tableView.setColumnWidth(1, 100)
-        self.ui.tableView.setColumnWidth(2, 100)
-        self.ui.tableView.setColumnWidth(3, 150)
-        self.ui.tableView.setColumnWidth(4, 150)
-        self.ui.tableView.setColumnWidth(5, 100)
-        self.ui.tableView.setColumnWidth(6, 100)
-        self.ui.tableView.setColumnWidth(7, 150)
-        self.ui.tableView.setColumnWidth(8, 150)
-        self.ui.tableView.setColumnWidth(9, 150)
-        self.ui.tableView.verticalScrollBar().setValue(0)
-    # Friends List
-    # Talk Alias Settings
-    # Analog Address Book
-    # 5Tone Setting
-    # 2Tone Setting
-    # DTMF Setting
 class ImportDialog(QDialog):
     file_list = []
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ImportExportDialog()
         self.ui.setupUi(self)
         self.setWindowFlags(
@@ -7743,7 +8246,7 @@ class ComportDialog(QDialog):
     show_all = False
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ComportDialog()
         self.ui.setupUi(self)
         self.virtual_memory_file = ''
@@ -7800,7 +8303,7 @@ class PowerOnCharLineEdit(QLineEdit):
 class OptionalSettingsEditDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_OptionalSettingsEditDialog()
         self.ui.setupUi(self)
         self.setWindowFlags(
@@ -8652,7 +9155,7 @@ class ScanListDialog(QDialog):
     priority_channel_list = []
     def __init__(self, parent, scan_list: ScanList):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ScanEditDialog()
         self.ui.setupUi(self)
         self.scan_list = scan_list
@@ -8849,7 +9352,7 @@ class ZoneEditDialog(QDialog):
     zone_index = 0
     def __init__(self, parent, index):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ZoneEditDialog()
         self.ui.setupUi(self)
         self.setupUI()
@@ -8875,7 +9378,7 @@ class ZoneEditDialog(QDialog):
         self.zone: Zone = AnyToneMemory.zones[self.zone_index]
         self.zone.id = self.zone_index
         if len(self.zone.channels) == 0:
-            self.zone.name = "Zone " + str(self.zone_index)
+            self.zone.name = "Zone " + str(self.zone_index+1)
         self.available_channels.clear()
         for ch in AnyToneMemory.channels:
             if ch.rx_frequency != 0 and ch not in self.zone.channels:
@@ -8998,7 +9501,7 @@ class ZoneEditDialog(QDialog):
         self.zone.a_channel_obj = self.zone.channels[self.zone.a_channel]
         self.zone.b_channel_obj = self.zone.channels[self.zone.b_channel]
         self.zone.hide = int(self.ui.zoneHideChbx.isChecked())
-        self.parent.showZones()
+        self.parent.listZones()
 class UI_Constants:    
     def iconPath():
         if getattr(sys, 'frozen', False):
@@ -9011,7 +9514,7 @@ class UI_Constants:
 class MasterIdDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_MasterIdDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.accepted.connect(self.save)
@@ -9028,7 +9531,7 @@ class MasterIdDialog(QDialog):
 class RetryConnectionDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_RetryConnectionDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.rejected.connect(self.close)
@@ -9039,7 +9542,7 @@ class RetryConnectionDialog(QDialog):
 class ThemeDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
+        self.parent: MainWindow = parent
         self.ui = Ui_ThemeDialog()
         self.ui.setupUi(self)
         self.ui.themeCmbx.addItems(Theme.THEME_STRINGS)
@@ -9055,6 +9558,80 @@ class ThemeDialog(QDialog):
         Theme.applyTheme(app, color, mode)
         UserSettings.theme = (color, mode)
         UserSettings.save()
+class RoamingChannelEditDialog(QDialog):
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_RoamingChannelEditDialog()
+        self.ui.setupUi(self)
+        self.index = index
+        self.ui.buttonBox.accepted.connect(self.save)
+        self.ui.buttonBox.rejected.connect(self.close)
+        self.ui.rxFrequencyTxt.editingFinished.connect(self.formatRxFrequency)
+        self.ui.txFrequencyTxt.editingFinished.connect(self.formatTxFrequency)
+        self.ui.previousBtn.clicked.connect(self.prevBtnClicked)
+        self.ui.nextBtn.clicked.connect(self.nextBtnClicked)
+        self.ui.rxFrequencyTxt.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+(\.\d+)?"), self))
+        self.ui.txFrequencyTxt.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+(\.\d+)?"), self))
+        if self.index == 0:
+            self.ui.previousBtn.setDisabled(True)
+        if self.index >= (len(AnyToneMemory.roaming_channels) - 1):
+            self.ui.nextBtn.setDisabled(True)
+        self.setupUI()
+        self.loadData()
+    def setupUI(self):
+        for ch in AnyToneMemory.channels:
+            if ch.rx_frequency > 0:
+                self.ui.fastSelectCmbx.addItem(ch.name + '|' + str(ch.id+1), ch)
+        self.ui.colorCodeCmbx.addItems([str(i) for i in range(16)] + ['No Use'])
+        self.ui.slotCmbx.addItems(['Slot1', 'Slot2', 'No Use'])
+        self.ui.fastSelectCmbx.currentIndexChanged.connect(self.fastSelect)
+    def fastSelect(self):
+        ch: Channel = self.ui.fastSelectCmbx.currentData()
+        self.ui.rxFrequencyTxt.setText(ch.getRxFrequencyStr())
+        self.ui.txFrequencyTxt.setText(ch.getTxFrequencyStr())
+        self.ui.slotCmbx.setCurrentIndex(ch.time_slot)
+        self.ui.colorCodeCmbx.setCurrentIndex(ch.rx_color_code_idx)
+    def loadData(self):
+        self.setWindowTitle("Roaming Channel Edit---" + str(self.index+1))
+        self.channel = AnyToneMemory.roaming_channels[self.index]
+        self.ui.rxFrequencyTxt.setText(self.channel.getRxFrequencyStr())
+        self.ui.txFrequencyTxt.setText(self.channel.getTxFrequencyStr())
+        if len(self.channel.name) == 0:
+            self.ui.nameTxt.setText('Roam Channel ' + str(self.index+1))
+        else:
+            self.ui.nameTxt.setText(self.channel.name)
+        self.ui.colorCodeCmbx.setCurrentIndex(self.channel.color_code)
+        self.ui.slotCmbx.setCurrentIndex(self.channel.slot)
+    def save(self):
+        self.channel.rx_frequency = int(Decimal(self.ui.rxFrequencyTxt.text()) * 100000)
+        self.channel.tx_frequency = int(Decimal(self.ui.txFrequencyTxt.text()) * 100000)
+        self.channel.name = self.ui.nameTxt.text()
+        self.channel.color_code = self.ui.colorCodeCmbx.currentIndex()
+        self.channel.slot = self.ui.slotCmbx.currentIndex()
+        self.parent.listRoamingChannels(False)
+    def nextBtnClicked(self):
+        self.save()
+        if self.index >= (len(AnyToneMemory.roaming_channels) - 2):
+            self.ui.nextBtn.setDisabled(True)
+        if self.index < len(AnyToneMemory.roaming_channels) - 1:
+            self.index += 1
+            self.loadData()
+            self.ui.previousBtn.setDisabled(False)
+    def prevBtnClicked(self):
+        self.save()
+        if self.index <= 1:
+            self.ui.previousBtn.setDisabled(True)
+        if self.index > 0:
+            self.index -= 1
+            self.loadData()
+            self.ui.nextBtn.setDisabled(False)
+    def formatRxFrequency(self):
+        txt  = self.ui.rxFrequencyTxt.text()
+        self.ui.rxFrequencyTxt.setText(format(f'{Decimal(txt):.5f}'))
+    def formatTxFrequency(self):
+        txt  = self.ui.txFrequencyTxt.text()
+        self.ui.txFrequencyTxt.setText(format(f'{Decimal(txt):.5f}'))
 class Theme:
     THEME_STRINGS = [
         'None',
@@ -9094,3 +9671,130 @@ class Theme:
             if 'light' in theme:
                 invert_secondary = True
             apply_stylesheet(QApplication.instance(), theme=theme, invert_secondary=invert_secondary)
+class RoamingZoneEditDialog(QDialog):
+    available_channels_order_type = 0
+    available_channel_selected_idx: int = 0
+    available_channels: list[RoamingChannel] = []
+    member_channel_selected_idx: int = 0
+    member_channels: list[RoamingChannel] = []
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_RoamingZoneEditDialog()
+        self.ui.setupUi(self)
+        self.setupUI()
+        self.index = index
+        self.loadData()
+    def setupUI(self):
+        self.ui.pushChannelBtn.clicked.connect(self.pushChannel)
+        self.ui.popChannelBtn.clicked.connect(self.popChannel)
+        self.ui.orderIdBtn.clicked.connect(self.orderMemberId)
+        self.ui.orderNameBtn.clicked.connect(self.orderMemberName)
+        self.ui.orderUpBtn.clicked.connect(self.orderUp)
+        self.ui.orderDownBtn.clicked.connect(self.orderDown)
+        self.ui.orderAvailableIdBtn.clicked.connect(self.orderAvailableId)
+        self.ui.orderAvailableNameBtn.clicked.connect(self.orderAvailableName)
+        self.ui.okBtn.clicked.connect(self.saveBtnClicked)
+        self.ui.cancelBtn.clicked.connect(self.close)
+        self.ui.nextBtn.clicked.connect(self.nextZone)
+        self.ui.prevBtn.clicked.connect(self.prevZone)
+        self.ui.memberTableView.setColumnWidth(0, 50)
+        self.ui.availableChannelTableView.setColumnWidth(0, 50)
+    def loadData(self):
+        self.setWindowTitle("Roaming Zone Edit---" + str(self.index+1))
+        self.zone: RoamingZone = AnyToneMemory.roaming_zones[self.index]
+        self.zone.id = self.index
+        if len(self.zone.roaming_channels) == 0:
+            self.zone.name = "Roam Zone " + str(self.index+1)
+        self.available_channels.clear()
+        for ch in AnyToneMemory.roaming_channels:
+            if ch.rx_frequency != 0 and ch not in self.zone.roaming_channels:
+                self.available_channels.append(ch)
+        self.member_channels = self.zone.roaming_channels
+        self.updateChannelTables()
+        self.ui.nameTxt.setText(self.zone.name)
+    def orderAvailableId(self):
+        self.available_channels_order_type = 0
+        self.orderAvailable()
+    def orderAvailableName(self):
+        self.available_channels_order_type = 1
+        self.orderAvailable()
+    def orderAvailable(self):
+        if self.available_channels_order_type == 0:
+            self.available_channels.sort(key=lambda x: x.id)
+        else:
+            self.available_channels.sort(key=lambda x: x.name)
+        self.updateChannelTables()
+    def orderMemberId(self):
+        self.member_channels.sort(key=lambda x: x.id)
+        self.updateChannelTables()
+    def orderMemberName(self):
+        self.member_channels.sort(key=lambda x: x.name)
+        self.updateChannelTables()
+    def updateChannelTables(self):
+        member_model = QStandardItemModel()
+        for i, ch in enumerate(self.member_channels):
+                member_model.setItem(i, 0, QStandardItem(str(ch.id+1)))
+                member_model.setItem(i, 1, QStandardItem(str(ch.name)))
+        self.ui.memberTableView.setModel(member_model)
+        channel_model = QStandardItemModel()
+        for i, ch in enumerate(self.available_channels):
+            channel_model.setItem(i, 0, QStandardItem(str(ch.id+1)))
+            channel_model.setItem(i, 1, QStandardItem(str(ch.name)))
+        self.ui.availableChannelTableView.setModel(channel_model)
+        self.ui.availableChannelTableView.selectRow(self.available_channel_selected_idx)
+        self.ui.memberTableView.selectRow(self.member_channel_selected_idx)
+    def pushChannel(self):
+        if len(self.ui.availableChannelTableView.selectedIndexes()) > 0:
+            self.available_channel_selected_idx = self.ui.availableChannelTableView.selectedIndexes()[0].row()
+        elif self.available_channel_selected_idx > len(self.available_channels) - 1:
+            return #self.available_channel_selected_idx = len(self.available_channels) - 1
+        self.member_channels.append(self.available_channels.pop(self.available_channel_selected_idx))
+        self.member_channel_selected_idx = len(self.member_channels) - 1
+        self.updateChannelTables()
+    def popChannel(self):
+        if len(self.ui.memberTableView.selectedIndexes()) > 0:
+            self.member_channel_selected_idx = self.ui.memberTableView.selectedIndexes()[0].row()
+        elif self.member_channel_selected_idx > len(self.member_channels) - 1:
+            return #self.member_channel_selected_idx = len(self.member_channels) - 1
+        ch = self.member_channels.pop(self.member_channel_selected_idx)
+        self.available_channels.append(ch)
+        self.available_channels.sort(key=lambda x: x.id)
+        self.available_channel_selected_idx = self.available_channels.index(ch)
+        self.updateChannelTables()
+    def orderUp(self):
+        if len(self.ui.memberTableView.selectedIndexes()) == 0:
+            return
+        idx = self.ui.memberTableView.selectedIndexes()[0].row()
+        if idx == 0:
+            return
+        ch = self.member_channels.pop(idx)
+        self.member_channels.insert(idx - 1, ch)
+        self.member_channel_selected_idx = idx - 1
+        self.updateChannelTables()
+    def orderDown(self):
+        if len(self.ui.memberTableView.selectedIndexes()) == 0:
+            return
+        idx = self.ui.memberTableView.selectedIndexes()[0].row()
+        if idx == len(self.member_channels) - 1:
+            return
+        ch = self.member_channels.pop(idx)
+        self.member_channels.insert(idx + 1, ch)
+        self.member_channel_selected_idx = idx + 1
+        self.updateChannelTables()
+    def nextZone(self):
+        self.save()
+        self.index += 1
+        self.loadData()
+    def prevZone(self):
+        self.save()
+        if self.index > 0:
+            self.index -= 1
+            self.loadData()
+    def saveBtnClicked(self):
+        self.save()
+        self.close()
+    def save(self):
+        self.zone.name = self.ui.nameTxt.text()
+        self.zone.roaming_channels = self.member_channels
+        self.parent.listRoamingZones(False)

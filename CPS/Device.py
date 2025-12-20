@@ -23,6 +23,14 @@ def printBytesHex(data):
     print('\n\r')
         
 class AnyToneDevice(QObject):
+    # Read Write Options
+    RADIO_DATA = 1
+    DIGITAL_CONTACTS = 2
+    RADIO_DATA_CONTACTS = 3
+    BOOT_IMAGE = 4
+    BK1_IMAGE = 5
+    BK2_IMAGE = 6
+
     STATUS_SUCCESS = 0
     STATUS_COM_ERROR = 1
     STATUS_DEVICE_MISMATCH = 2
@@ -35,51 +43,17 @@ class AnyToneDevice(QObject):
 
     verbose = False
     read_write_options: int = 0
+    image_data = b''
 
     def __init__(self):
         super().__init__()
 
-    def printProgress(self, progress):
-        print(str(int(progress)) + '%', '\t[', end='')
-        for i in range(100):
-            if i < progress:
-                print('-', end='')
-            elif i == progress:
-                print('>', end='')
-            else:
-                print(' ', end='')
-        print(']', end='\r')
-
-    def readMemory(self, start_address, read_len):
-        data = b''
-        read_count = read_len/0x10
-        if self.verbose:
-            print("Reading:", hex(start_address), '-', hex(start_address + read_len))
-        for idx, addr in enumerate(range(start_address, start_address + read_len, 0x10)):
-            progress = round((idx / read_count) * 100, 0)
-            if self.verbose:
-                self.printProgress(progress)
-            data += self.readMemoryAddress(addr, 0x10)[0]
-
-        if self.verbose:
-            self.printProgress(100)
-            print("")
-        return data
-    
+    # Write Memory Functions
     def writeMemory(self, address: int, data: bytes):
         data_len = len(data)
-        read_count = data_len/0x10
-        if self.verbose:
-            print("Writing:", hex(address), '-', hex(address + data_len))
         for idx, addr in enumerate(range(address, address + data_len, 0x10)):
-            progress = round((idx / read_count) * 100, 0)
-            if self.verbose:
-                self.printProgress(progress)
             self.writeMemoryAddress(addr, data[idx * 0x10: (idx * 0x10) + 0x10])
 
-        if self.verbose:
-            self.printProgress(100)
-            print("")
         return data
     
     def writeRadioData(self):
@@ -88,11 +62,49 @@ class AnyToneDevice(QObject):
             self.finished.emit(AnyToneDevice.STATUS_DEVICE_MISMATCH)
             return
 
-        if self.read_write_options == 1 or self.read_write_options == 3:
+        if self.read_write_options == AnyToneDevice.RADIO_DATA or self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
             self.writeOtherData()
-        elif self.read_write_options == 2:
+        elif self.read_write_options == AnyToneDevice.DIGITAL_CONTACTS:
             self.writeDigitalContacts()
+        elif self.read_write_options == AnyToneDevice.BOOT_IMAGE:
+            self.writeBootImage()
+        elif self.read_write_options == AnyToneDevice.BK1_IMAGE:
+            self.writeBk1Image()
+        elif self.read_write_options == AnyToneDevice.BK2_IMAGE:
+            self.writeBk2Image()
 
+    def writeBootImage(self):
+        if len(self.image_data) != 0xa000:
+            print("Error: Incorrect image data size")
+            return
+        
+        for i in range(0, 0xa000, 0x10):
+            self.writeMemory(0x2ac0000 + i, self.image_data[i:i+0x10])
+            self.update1.emit(i, 0, '')
+
+    def writeBk1Image(self):
+        print('bk1')
+        if len(self.image_data) != 0xa000:
+            print("Error: Incorrect image data size")
+            return
+        
+        for i in range(0, 0xa000, 0x10):
+            self.writeMemory(0x2b00000 + i, self.image_data[i:i+0x10])
+            self.update1.emit(i, 0, '')
+
+    def writeBk2Image(self):
+        print('bk2')
+        if len(self.image_data) != 0xa000:
+            print("Error: Incorrect image data size")
+            return
+        
+        for i in range(0, 0xa000, 0x10):
+            self.writeMemory(0x2b80000 + i, self.image_data[i:i+0x10])
+            self.update1.emit(i, 0, '')
+    
+    def writeDigitalContacts(self):
+        pass
+    
     def writeOtherData(self):
         self.radio_write_headers = []
         self.radio_write_data = []
@@ -103,6 +115,11 @@ class AnyToneDevice(QObject):
         self.writeChannelData()
         self.writeFMChannelData()
         self.writeGpsRoamingData()
+        self.writeAutoRepeaterFrequencyData()
+        self.writeRoamingChannelData()
+        self.writeRoamingZoneData()
+        self.writeSettingsData()
+        self.writeMasterRadioIdData()
 
         # self.radio_write_data.sort(key=lambda x: x[0])
         self.update1.emit(0, len(self.radio_write_data) + 1, 'Writing Headers')
@@ -274,12 +291,8 @@ class AnyToneDevice(QObject):
 
         self.radio_write_data.append(('FM Data', radio_write_data))
 
-    def writeDigitalContacts(self):
-        pass
-    
     def writeGpsRoamingData(self):
         radio_write_data = []
-        
 
         for gps_idx in range(32):
             self.update2.emit(gps_idx, 32, 'Reading GPS Roaming')
@@ -289,9 +302,393 @@ class AnyToneDevice(QObject):
             gps_data = AnyToneMemory.gps_roaming_list[gps_idx].encode()
             radio_write_data.append((gps_addr, gps_data))
 
-        # radio_write_data.append((0x2504000, gps_roaming_data))
         self.radio_write_data.append(('GPS Roaming Data', radio_write_data))
-            
+    
+    def writeAutoRepeaterFrequencyData(self):
+        data = bytearray(0x3f0)
+        for i, arf in enumerate(AnyToneMemory.auto_repeater_freq_list):
+            addr = i*4
+            data[addr:addr+4] = arf.frequency.to_bytes(4, 'little')
+
+        self.radio_write_data.append(('Auto Repeater Frequencies', [(0x24c2000, data)]))
+    
+    def writeRoamingChannelData(self):
+        radio_write_data = []
+        header_offset = 0x1042000 #
+        data_offset = 0x1040000
+
+        id_set_list = bytearray(0x20)
+        for i, rc in enumerate(AnyToneMemory.roaming_channels):
+            if rc.rx_frequency > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                id_set_list[current_byte_idx] = Bit.setBit(id_set_list[current_byte_idx], i % 8, True)
+                radio_write_data.append((data_offset + (i * 0x20), rc.encode()))
+
+        self.radio_write_data.append(('Roaming Channel Data', radio_write_data))
+        self.radio_write_headers.append((header_offset, bytes(id_set_list)))
+
+    def writeRoamingZoneData(self):
+        radio_write_data = []
+        header_offset = 0x1042080
+        data_offset = 0x1043000
+
+        id_set_list = bytearray(0x10)
+
+        for i, rz in enumerate(AnyToneMemory.roaming_zones):
+            if len(rz.roaming_channels) > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                id_set_list[current_byte_idx] = Bit.setBit(id_set_list[current_byte_idx], i % 8, True)
+                radio_write_data.append((data_offset + (i * 0x50), rz.encode()))
+
+        
+        self.radio_write_data.append(('Roaming Zone Data', radio_write_data))
+        self.radio_write_headers.append((header_offset, bytes(id_set_list)))
+
+    def writeSettingsData(self):
+        data_0000_addr = 0x2500000 # 0xf0
+        data_0600_addr = 0x2500600 # 0x30
+        data_1280_addr = 0x2501280 # 0x20
+        data_1400_addr = 0x2501400 # 0x100
+        data_14_addr = 0x24c1400 #0x20
+        data_15_addr = 0x24c1440 #0x30
+
+        data_0000 = bytearray(0xf0)
+        data_0600 = bytearray(0x30)
+        data_1280 = bytearray(0x20)
+        data_1400 = bytearray(0x100)
+        data_14 = bytearray(0x20)
+        data_15 = bytearray(0x30)
+
+        # Alarm Settings
+        data_14[0x0] = AnyToneMemory.alarm_settings.analog_emergency_alarm
+        data_14[0x1] = AnyToneMemory.alarm_settings.analog_eni_type
+        data_14[0x2] = AnyToneMemory.alarm_settings.analog_emergency_id
+        data_14[0x3] = AnyToneMemory.alarm_settings.analog_alarm_time
+        data_14[0x4] = AnyToneMemory.alarm_settings.analog_tx_duration
+        data_14[0x5] = AnyToneMemory.alarm_settings.analog_rx_duration
+        data_14[0x8] = AnyToneMemory.alarm_settings.analog_eni_send
+        data_14[0x6] = AnyToneMemory.alarm_settings.analog_emergency_channel
+        data_14[0x9] = AnyToneMemory.alarm_settings.analog_emergency_cycle
+        data_14[0x12] = AnyToneMemory.alarm_settings.work_mode_voice_switch
+        data_14[0x13] = AnyToneMemory.alarm_settings.work_mode_area_switch
+        data_14[0x14] = AnyToneMemory.alarm_settings.work_mode_mic_switch
+        data_14[0xa] = AnyToneMemory.alarm_settings.digital_emergency_alarm
+        data_14[0xb] = AnyToneMemory.alarm_settings.digital_alarm_time
+        data_14[0xc] = AnyToneMemory.alarm_settings.digital_tx_duration
+        data_14[0xd] = AnyToneMemory.alarm_settings.digital_rx_duration
+        data_14[0x10] = AnyToneMemory.alarm_settings.digital_eni_send
+        data_14[0xe] = AnyToneMemory.alarm_settings.digital_emergency_channel
+        data_14[0x11] = AnyToneMemory.alarm_settings.digital_emergency_cycle
+        data_15[0x23:0x27] = bytearray(bytes.fromhex(str(AnyToneMemory.alarm_settings.digital_tg_dmr_id).rjust(4,'0')))
+        data_15[0x0] = AnyToneMemory.alarm_settings.digital_call_type
+        data_14[0x15] = AnyToneMemory.alarm_settings.receive_alarm
+        data_0000[0x24] = AnyToneMemory.alarm_settings.man_down
+        data_0000[0x4f] = AnyToneMemory.alarm_settings.man_down_delay
+
+        # Optional Settings
+        # Power-on
+        data_0000[0x6] = AnyToneMemory.optional_settings.poweron_interface
+        data_0600[0x0:0xe] = AnyToneMemory.optional_settings.poweron_display_1
+        data_0600[0x10:0x1e] = AnyToneMemory.optional_settings.poweron_display_2
+        data_0000[0x7] = AnyToneMemory.optional_settings.poweron_password
+        data_0600[0x20:0x28] = AnyToneMemory.optional_settings.poweron_password_char.encode('utf-8').ljust(8, b'\x00')
+        data_0000[0xd7] = AnyToneMemory.optional_settings.default_startup_channel
+        data_0000[0xd8] = AnyToneMemory.optional_settings.startup_zone_a
+        data_0000[0xda] = AnyToneMemory.optional_settings.startup_channel_a
+        data_0000[0xd9] = AnyToneMemory.optional_settings.startup_zone_b
+        data_0000[0xdb] = AnyToneMemory.optional_settings.startup_channel_b
+        data_0000[0xeb] = AnyToneMemory.optional_settings.startup_gps_test
+        data_0000[0xec] = AnyToneMemory.optional_settings.startup_reset
+
+        # Power Save
+        data_0000[0x3] = AnyToneMemory.optional_settings.auto_shutdown
+        data_0000[0xb] = AnyToneMemory.optional_settings.power_save
+        data_1400[0x3f] = AnyToneMemory.optional_settings.auto_shutdown_type 
+
+        # Display
+        data_0000[0x26] = AnyToneMemory.optional_settings.brightness
+        data_0000[0x27] = AnyToneMemory.optional_settings.auto_backlight_duration
+        data_0000[0xe1] = AnyToneMemory.optional_settings.backlight_tx_delay
+        data_0000[0x37] = AnyToneMemory.optional_settings.menu_exit_time
+        data_0000[0x51] = AnyToneMemory.optional_settings.time_display
+        data_0000[0x4d] = AnyToneMemory.optional_settings.last_caller
+        data_0000[0xaf] = AnyToneMemory.optional_settings.call_display_mode
+        data_0000[0xbc] = AnyToneMemory.optional_settings.callsign_display_color
+        data_0000[0x3a] = AnyToneMemory.optional_settings.call_end_prompt_box
+        data_0000[0xb8] = AnyToneMemory.optional_settings.display_channel_number
+        data_0000[0xb9] = AnyToneMemory.optional_settings.display_current_contact
+        data_0000[0xc0] = AnyToneMemory.optional_settings.standby_char_color
+        data_0000[0xc1] = AnyToneMemory.optional_settings.standby_bk_picture
+        data_0000[0xc2] = AnyToneMemory.optional_settings.show_last_call_on_launch
+        data_0000[0xe2] = AnyToneMemory.optional_settings.separate_display
+        data_0000[0xe3] = AnyToneMemory.optional_settings.ch_switching_keeps_caller
+        data_0000[0xe6] = AnyToneMemory.optional_settings.backlight_rx_delay
+        data_0000[0xe4] = AnyToneMemory.optional_settings.channel_name_color_a
+        data_1400[0x39] = AnyToneMemory.optional_settings.channel_name_color_b
+        data_1400[0x3d] = AnyToneMemory.optional_settings.zone_name_color_a
+        data_1400[0x3e] = AnyToneMemory.optional_settings.zone_name_color_b
+        data_1400[0x40] = Bit.setBit(data_1400[0x40], 0, AnyToneMemory.optional_settings.display_channel_type)
+        data_1400[0x40] = Bit.setBit(data_1400[0x40], 1, AnyToneMemory.optional_settings.display_time_slot)
+        data_1400[0x40] = Bit.setBit(data_1400[0x40], 2, AnyToneMemory.optional_settings.display_color_code)
+        data_1400[0x42] = AnyToneMemory.optional_settings.date_display_format
+        data_0000[0x47] = AnyToneMemory.optional_settings.volume_bar
+
+        # Work Mode
+        data_0000[0x01] = AnyToneMemory.optional_settings.display_mode
+        data_0000[0x15] = AnyToneMemory.optional_settings.vf_mr_a
+        data_0000[0x16] = AnyToneMemory.optional_settings.vf_mr_b
+        data_0000[0x1f] = AnyToneMemory.optional_settings.mem_zone_a
+        data_0000[0x20] = AnyToneMemory.optional_settings.mem_zone_b
+        data_0000[0x2c] = AnyToneMemory.optional_settings.main_channel_set
+        data_0000[0x2d] = AnyToneMemory.optional_settings.sub_channel_mode
+        data_0000[0x34] = AnyToneMemory.optional_settings.working_mode
+
+        # Vox/BT
+        data_0000[0x0c] = AnyToneMemory.optional_settings.vox_level
+        data_0000[0x0d] = AnyToneMemory.optional_settings.vox_delay
+        data_0000[0x33] = AnyToneMemory.optional_settings.vox_detection
+        data_0000[0xb1] = AnyToneMemory.optional_settings.bt_on_off
+        data_0000[0xb2] = AnyToneMemory.optional_settings.bt_int_mic
+        data_0000[0xb3] = AnyToneMemory.optional_settings.bt_int_spk
+        data_0000[0xb6] = AnyToneMemory.optional_settings.bt_mic_gain
+        data_0000[0xb7] = AnyToneMemory.optional_settings.bt_spk_gain
+        data_0000[0xed] = AnyToneMemory.optional_settings.bt_hold_time
+        data_0000[0xee] = AnyToneMemory.optional_settings.bt_rx_delay
+        data_1400[0x21] = AnyToneMemory.optional_settings.bt_ptt_hold
+        data_1400[0x34] = AnyToneMemory.optional_settings.bt_ptt_sleep_time
+
+        # STE
+        data_0000[0x17] = AnyToneMemory.optional_settings.ste_type_of_ctcss
+        data_0000[0x18] = AnyToneMemory.optional_settings.ste_when_no_signal
+        data_1400[0x36] = AnyToneMemory.optional_settings.ste_time
+
+        # FM
+        data_0000[0x1e] = AnyToneMemory.optional_settings.fm_vfo_mem
+        data_0000[0x1d] = AnyToneMemory.optional_settings.fm_work_channel
+        data_0000[0x2b] = AnyToneMemory.optional_settings.fm_monitor
+        # Key Function
+        data_0000[0x02] = AnyToneMemory.optional_settings.key_lock
+        data_0000[0x10] = AnyToneMemory.optional_settings.pf1_short_key
+        data_0000[0x11] = AnyToneMemory.optional_settings.pf2_short_key
+        data_0000[0x12] = AnyToneMemory.optional_settings.pf3_short_key
+        data_0000[0x13] = AnyToneMemory.optional_settings.p1_short_key
+        data_0000[0x14] = AnyToneMemory.optional_settings.p2_short_key
+        data_0000[0x41] = AnyToneMemory.optional_settings.pf1_long_key
+        data_0000[0x42] = AnyToneMemory.optional_settings.pf2_long_key
+        data_0000[0x43] = AnyToneMemory.optional_settings.pf3_long_key
+        data_0000[0x44] = AnyToneMemory.optional_settings.p1_long_key
+        data_0000[0x45] = AnyToneMemory.optional_settings.p2_long_key
+        data_0000[0x46] = AnyToneMemory.optional_settings.long_key_time
+        data_0000[0xbe] = Bit.setBit(data_0000[0xbe], 0, AnyToneMemory.optional_settings.knob_lock)
+        data_0000[0xbe] = Bit.setBit(data_0000[0xbe], 1, AnyToneMemory.optional_settings.keyboard_lock)
+        data_0000[0xbe] = Bit.setBit(data_0000[0xbe], 3, AnyToneMemory.optional_settings.side_key_lock)
+        data_0000[0xbe] = Bit.setBit(data_0000[0xbe], 4, AnyToneMemory.optional_settings.forced_key_lock)
+
+        # Other
+        if AnyToneMemory.optional_settings.priority_zone_a == 0:
+            AnyToneMemory.optional_settings.priority_zone_a = 0xff
+        else:
+            AnyToneMemory.optional_settings.priority_zone_a -= 1
+
+        if AnyToneMemory.optional_settings.priority_zone_b == 0:
+            AnyToneMemory.optional_settings.priority_zone_b = 0xff
+        else:
+            AnyToneMemory.optional_settings.priority_zone_b -= 1
+        data_0000[0xd5] = AnyToneMemory.optional_settings.address_book_sent_with_code
+        data_0000[0x04] = AnyToneMemory.optional_settings.tot
+        data_0000[0x05] = AnyToneMemory.optional_settings.language
+        data_0000[0x08] = AnyToneMemory.optional_settings.frequency_step
+        data_0000[0x09] = AnyToneMemory.optional_settings.sql_level_a
+        data_0000[0x0a] = AnyToneMemory.optional_settings.sql_level_b
+        data_0000[0x2e] = AnyToneMemory.optional_settings.tbst
+        data_0000[0x50] = AnyToneMemory.optional_settings.analog_call_hold_time
+        data_0000[0x6e] = AnyToneMemory.optional_settings.call_channel_maintained
+        data_0000[0x6f] = AnyToneMemory.optional_settings.priority_zone_a
+        data_0000[0x70] = AnyToneMemory.optional_settings.priority_zone_b
+        data_0000[0xe9] = AnyToneMemory.optional_settings.mute_timing
+        data_1400[0x3a] = AnyToneMemory.optional_settings.encryption_type
+        data_1400[0x3b] = AnyToneMemory.optional_settings.tot_predict
+        data_1400[0x3c] = AnyToneMemory.optional_settings.tx_power_agc
+
+        # Digital Func
+        data_0000[0x19] = AnyToneMemory.optional_settings.group_call_hold_time
+        data_0000[0x1a] = AnyToneMemory.optional_settings.private_call_hold_time
+        data_1400[0x37] = AnyToneMemory.optional_settings.manual_dial_group_call_hold_time
+        data_1400[0x38] = AnyToneMemory.optional_settings.manual_dial_private_call_hold_time
+        data_1400[0x6e] = AnyToneMemory.optional_settings.voice_header_repetitions
+        data_0000[0x1c] = AnyToneMemory.optional_settings.tx_preamble_duration
+        data_0000[0x38] = AnyToneMemory.optional_settings.filter_own_id
+        data_0000[0x3c] = AnyToneMemory.optional_settings.digital_remote_kill
+        data_0000[0x49] = AnyToneMemory.optional_settings.digital_monitor
+        data_0000[0x4a] = AnyToneMemory.optional_settings.digital_monitor_cc
+        data_0000[0x4b] = AnyToneMemory.optional_settings.digital_monitor_id
+        data_0000[0x4c] = AnyToneMemory.optional_settings.monitor_slot_hold
+        data_0000[0x3e] = AnyToneMemory.optional_settings.remote_monitor
+        data_0000[0xc3] = AnyToneMemory.optional_settings.sms_format
+
+        # Alert Tone
+        data_0000[0x29] = AnyToneMemory.optional_settings.sms_alert
+        data_0000[0x2f] = AnyToneMemory.optional_settings.call_alert
+        data_0000[0x32] = AnyToneMemory.optional_settings.digi_call_reset_tone
+        data_0000[0x31] = AnyToneMemory.optional_settings.talk_permit
+        data_0000[0x00] = AnyToneMemory.optional_settings.key_tone
+        data_0000[0x36] = AnyToneMemory.optional_settings.digi_idle_channel_tone
+        data_0000[0x39] = AnyToneMemory.optional_settings.startup_sound
+        data_0000[0xbb] = AnyToneMemory.optional_settings.tone_key_sound_adjustable
+        data_1400[0x41] = AnyToneMemory.optional_settings.analog_idle_channel_tone
+        data_0000[0xb4] = AnyToneMemory.optional_settings.plugin_recording_tone
+        data_0000[0x72:0x74] = AnyToneMemory.optional_settings.call_permit_first_tone_freq.to_bytes(2, 'little')
+        data_0000[0x7c:0x7e] = AnyToneMemory.optional_settings.call_permit_first_tone_period.to_bytes(2, 'little')
+        data_0000[0x74:0x76] = AnyToneMemory.optional_settings.call_permit_second_tone_freq.to_bytes(2, 'little')
+        data_0000[0x7e:0x80] = AnyToneMemory.optional_settings.call_permit_second_tone_period.to_bytes(2, 'little')
+        data_0000[0x76:0x78] = AnyToneMemory.optional_settings.call_permit_third_tone_freq.to_bytes(2, 'little')
+        data_0000[0x80:0x82] = AnyToneMemory.optional_settings.call_permit_third_tone_period.to_bytes(2, 'little')
+        data_0000[0x78:0x7a] = AnyToneMemory.optional_settings.call_permit_fourth_tone_freq.to_bytes(2, 'little')
+        data_0000[0x82:0x84] = AnyToneMemory.optional_settings.call_permit_fourth_tone_period.to_bytes(2, 'little')
+        data_0000[0x7a:0x7c] = AnyToneMemory.optional_settings.call_permit_fifth_tone_freq.to_bytes(2, 'little')
+        data_0000[0x84:0x86] = AnyToneMemory.optional_settings.call_permit_fifth_tone_period.to_bytes(2, 'little')
+        data_0000[0x86:0x88] = AnyToneMemory.optional_settings.idle_channel_first_tone_freq.to_bytes(2, 'little')
+        data_0000[0x90:0x92] = AnyToneMemory.optional_settings.idle_channel_first_tone_period.to_bytes(2, 'little')
+        data_0000[0x88:0x8a] = AnyToneMemory.optional_settings.idle_channel_second_tone_freq.to_bytes(2, 'little')
+        data_0000[0x92:0x94] = AnyToneMemory.optional_settings.idle_channel_second_tone_period.to_bytes(2, 'little')
+        data_0000[0x8a:0x8c] = AnyToneMemory.optional_settings.idle_channel_third_tone_freq.to_bytes(2, 'little')
+        data_0000[0x94:0x96] = AnyToneMemory.optional_settings.idle_channel_third_tone_period.to_bytes(2, 'little')
+        data_0000[0x8c:0x8e] = AnyToneMemory.optional_settings.idle_channel_fourth_tone_freq.to_bytes(2, 'little')
+        data_0000[0x96:0x98] = AnyToneMemory.optional_settings.idle_channel_fourth_tone_period.to_bytes(2, 'little')
+        data_0000[0x8e:0x90] = AnyToneMemory.optional_settings.idle_channel_fifth_tone_freq.to_bytes(2, 'little')
+        data_0000[0x98:0x9a] = AnyToneMemory.optional_settings.idle_channel_fifth_tone_period.to_bytes(2, 'little')
+        data_0000[0x9a:0x9c] = AnyToneMemory.optional_settings.call_reset_first_tone_freq.to_bytes(2, 'little')
+        data_0000[0xa4:0xa6] = AnyToneMemory.optional_settings.call_reset_first_tone_period.to_bytes(2, 'little')
+        data_0000[0x9c:0x9e] = AnyToneMemory.optional_settings.call_reset_second_tone_freq.to_bytes(2, 'little')
+        data_0000[0xa6:0xa8] = AnyToneMemory.optional_settings.call_reset_second_tone_period.to_bytes(2, 'little')
+        data_0000[0x9e:0xa0] = AnyToneMemory.optional_settings.call_reset_third_tone_freq.to_bytes(2, 'little')
+        data_0000[0xa8:0xaa] = AnyToneMemory.optional_settings.call_reset_third_tone_period.to_bytes(2, 'little')
+        data_0000[0xa0:0xa2] = AnyToneMemory.optional_settings.call_reset_fourth_tone_freq.to_bytes(2, 'little')
+        data_0000[0xaa:0xac] = AnyToneMemory.optional_settings.call_reset_fourth_tone_period.to_bytes(2, 'little')
+        data_0000[0xa2:0xa4] = AnyToneMemory.optional_settings.call_reset_fifth_tone_freq.to_bytes(2, 'little')
+        data_0000[0xac:0xae] = AnyToneMemory.optional_settings.call_reset_fifth_tone_period.to_bytes(2, 'little')
+
+        # Alert Tone 1
+        data_1400[0x46:0x48] = AnyToneMemory.optional_settings.call_end_first_tone_freq.to_bytes(2, 'little')
+        data_1400[0x50:0x52] = AnyToneMemory.optional_settings.call_end_first_tone_period.to_bytes(2, 'little')
+        data_1400[0x48:0x4a] = AnyToneMemory.optional_settings.call_end_second_tone_freq.to_bytes(2, 'little')
+        data_1400[0x52:0x54] = AnyToneMemory.optional_settings.call_end_second_tone_period.to_bytes(2, 'little')
+        data_1400[0x4a:0x4c] = AnyToneMemory.optional_settings.call_end_third_tone_freq.to_bytes(2, 'little')
+        data_1400[0x54:0x56] = AnyToneMemory.optional_settings.call_end_third_tone_period.to_bytes(2, 'little')
+        data_1400[0x4c:0x4e] = AnyToneMemory.optional_settings.call_end_fourth_tone_freq.to_bytes(2, 'little')
+        data_1400[0x56:0x58] = AnyToneMemory.optional_settings.call_end_fourth_tone_period.to_bytes(2, 'little')
+        data_1400[0x4e:0x50] = AnyToneMemory.optional_settings.call_end_fifth_tone_freq.to_bytes(2, 'little')
+        data_1400[0x58:0x5a] = AnyToneMemory.optional_settings.call_end_fifth_tone_period.to_bytes(2, 'little')
+        data_1400[0x5a:0x5c] = AnyToneMemory.optional_settings.call_all_first_tone_freq.to_bytes(2, 'little')
+        data_1400[0x64:0x66] = AnyToneMemory.optional_settings.call_all_first_tone_period.to_bytes(2, 'little')
+        data_1400[0x5c:0x5e] = AnyToneMemory.optional_settings.call_all_second_tone_freq.to_bytes(2, 'little')
+        data_1400[0x66:0x68] = AnyToneMemory.optional_settings.call_all_second_tone_period.to_bytes(2, 'little')
+        data_1400[0x5e:0x60] = AnyToneMemory.optional_settings.call_all_third_tone_freq.to_bytes(2, 'little')
+        data_1400[0x68:0x6a] = AnyToneMemory.optional_settings.call_all_third_tone_period.to_bytes(2, 'little')
+        data_1400[0x60:0x62] = AnyToneMemory.optional_settings.call_all_fourth_tone_freq.to_bytes(2, 'little')
+        data_1400[0x6a:0x6c] = AnyToneMemory.optional_settings.call_all_fourth_tone_period.to_bytes(2, 'little')
+        data_1400[0x62:0x64] = AnyToneMemory.optional_settings.call_all_fifth_tone_freq.to_bytes(2, 'little')
+        data_1400[0x6c:0x6e] = AnyToneMemory.optional_settings.call_all_fifth_tone_period.to_bytes(2, 'little')
+
+        # GPS/Ranging
+        data_0000[0x28] = AnyToneMemory.optional_settings.gps_power
+        data_0000[0x3f] = AnyToneMemory.optional_settings.gps_positioning
+        data_0000[0x30] = AnyToneMemory.optional_settings.time_zone
+        data_0000[0xb5] = AnyToneMemory.optional_settings.ranging_interval
+        data_0000[0xbd] = AnyToneMemory.optional_settings.distance_unit
+        data_0000[0x53] = AnyToneMemory.optional_settings.gps_template_information
+        data_1280[0x0:0x20] = AnyToneMemory.optional_settings.gps_information_char.encode('utf-8').ljust(0x20, b'\x00')
+        data_1400[0x35] = AnyToneMemory.optional_settings.gps_mode
+        # AnyToneMemory.optional_settings.gps_roaming = int(data_0000[0x])
+
+        # VFO Scan
+        data_0000[0x0e] = AnyToneMemory.optional_settings.vfo_scan_type
+        data_0000[0x58:0x5c] = AnyToneMemory.optional_settings.vfo_scan_start_freq_uhf.to_bytes(4, 'little')
+        data_0000[0x5c:0x60] = AnyToneMemory.optional_settings.vfo_scan_end_freq_uhf.to_bytes(4, 'little')
+        data_0000[0x60:0x64] = AnyToneMemory.optional_settings.vfo_scan_start_freq_vhf.to_bytes(4, 'little')
+        data_0000[0x64:0x68] = AnyToneMemory.optional_settings.vfo_scan_end_freq_vhf.to_bytes(4, 'little')
+
+        # Auto Repeater
+        data_0000[0x48] = AnyToneMemory.optional_settings.auto_repeater_a
+        data_0000[0xd4] = AnyToneMemory.optional_settings.auto_repeater_b
+        data_0000[0x68] = AnyToneMemory.optional_settings.auto_repeater_1_uhf
+        data_0000[0x69] = AnyToneMemory.optional_settings.auto_repeater_1_vhf
+        data_1400[0x22] = AnyToneMemory.optional_settings.auto_repeater_2_uhf
+        data_1400[0x23] = AnyToneMemory.optional_settings.auto_repeater_2_vhf
+        data_0000[0xdd] = AnyToneMemory.optional_settings.repeater_check
+        data_0000[0xde] = AnyToneMemory.optional_settings.repeater_check_interval
+        data_0000[0xdf] = AnyToneMemory.optional_settings.repeater_check_reconnections
+        data_0000[0xe5] = AnyToneMemory.optional_settings.repeater_out_of_range_notify
+        data_0000[0xea] = AnyToneMemory.optional_settings.out_of_range_notify
+        data_0000[0xe7] = AnyToneMemory.optional_settings.auto_roaming
+        data_0000[0xe0] = AnyToneMemory.optional_settings.auto_roaming_start_condition
+        data_0000[0xba] = AnyToneMemory.optional_settings.auto_roaming_fixed_time
+        data_0000[0xbf] = AnyToneMemory.optional_settings.roaming_effect_wait_time
+        data_0000[0xd5] = AnyToneMemory.optional_settings.roaming_zone
+        data_0000[0xc4:0xc8] = AnyToneMemory.optional_settings.auto_repeater_1_min_freq_vhf.to_bytes(4, 'little')
+        data_0000[0xc8:0xcc] = AnyToneMemory.optional_settings.auto_repeater_1_max_freq_vhf.to_bytes(4, 'little')
+        data_0000[0xcc:0xd0] = AnyToneMemory.optional_settings.auto_repeater_1_min_freq_uhf.to_bytes(4, 'little')
+        data_0000[0xd0:0xd4] = AnyToneMemory.optional_settings.auto_repeater_1_max_freq_uhf.to_bytes(4, 'little')
+        data_1400[0x24:0x28] = AnyToneMemory.optional_settings.auto_repeater_2_min_freq_vhf.to_bytes(4, 'little')
+        data_1400[0x28:0x2c] = AnyToneMemory.optional_settings.auto_repeater_2_max_freq_vhf.to_bytes(4, 'little')
+        data_1400[0x2c:0x30] = AnyToneMemory.optional_settings.auto_repeater_2_min_freq_uhf.to_bytes(4, 'little')
+        data_1400[0x30:0x34] = AnyToneMemory.optional_settings.auto_repeater_2_max_freq_uhf.to_bytes(4, 'little')
+
+        # Record
+        AnyToneMemory.optional_settings.record_function = int(data_0000[0x22])
+
+        # Volume/Audio
+        data_0000[0x3b] = AnyToneMemory.optional_settings.max_volume
+        data_0000[0x52] = AnyToneMemory.optional_settings.max_headphone_volume
+        data_0000[0x0f] = AnyToneMemory.optional_settings.digi_mic_gain
+        data_0000[0x57] = AnyToneMemory.optional_settings.enhanced_sound_quality
+        data_1400[0x43] = AnyToneMemory.optional_settings.analog_mic_gain
+
+        # Unknown
+        data_1400[0x6f] = AnyToneMemory.optional_settings.data_250146f
+
+
+
+        radio_write_data = []
+        radio_write_data.append((data_0000_addr, data_0000))
+        radio_write_data.append((data_0600_addr, data_0600))
+        radio_write_data.append((data_1280_addr, data_1280))
+        radio_write_data.append((data_1400_addr, data_1400))
+        radio_write_data.append((data_14_addr, data_14))
+        radio_write_data.append((data_15_addr, data_15))
+
+        self.radio_write_data.append(('Writing Settings', radio_write_data))
+
+    def writeMasterRadioIdData(self):
+        data = AnyToneMemory.master_radioid.encode()
+        self.radio_write_data.append(('Master ID Data', [(0x2582000, data)]))
+
+
+    # Read Memory Functions
+    def readBootImage(self):
+        self.image_data = b''
+        for i in range(0, 0xa000, 0x10):
+            self.image_data += self.readMemory(0x2ac0000 + i, 0x10)
+            self.update1.emit(i, 0, '')
+
+    def readBk1Image(self):
+        self.image_data = b''
+        for i in range(0, 0xa000, 0x10):
+            self.image_data += self.readMemory(0x2b00000 + i, 0x10)
+            self.update1.emit(i, 0, '')
+
+    def readBk2Image(self):
+        self.image_data = b''
+        for i in range(0, 0xa000, 0x10):
+            self.image_data += self.readMemory(0x2b80000 + i, 0x10)
+            self.update1.emit(i, 0, '')
+
+    def readMemory(self, start_address, read_len):
+        data = b''
+        for addr in range(start_address, start_address + read_len, 0x10):
+            data += self.readMemoryAddress(addr, 0x10)[0]
+
+        return data
 
     def readRadioData(self):
         
@@ -300,54 +697,20 @@ class AnyToneDevice(QObject):
             self.finished.emit(AnyToneDevice.STATUS_DEVICE_MISMATCH)
             return
 
-        if self.read_write_options == 1 or self.read_write_options == 3:
+        if self.read_write_options == AnyToneDevice.RADIO_DATA or self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
             self.readOtherData()
-        elif self.read_write_options == 2:
+        elif self.read_write_options == AnyToneDevice.DIGITAL_CONTACTS:
             self.readDigitalContacts()
+        elif self.read_write_options == AnyToneDevice.BOOT_IMAGE:
+            self.readBootImage()
+        elif self.read_write_options == AnyToneDevice.BK1_IMAGE:
+            self.readBk1Image()
+        elif self.read_write_options == AnyToneDevice.BK2_IMAGE:
+            self.readBk2Image()
 
     # Digital Contact
     def readDigitalContacts(self):
         contact_count = int.from_bytes(self.readMemory(0x4840000, 16)[0:4], 'little')
-        
-        # Read the ID/Group Call and offsets
-        # contact_id_data:list[bytes] = []
-        # contact_id_list = []
-        # offset = 0x4000000
-        # for i in range(read_count): #Since there are two contacts per 16 bytes, 
-        #                             #read_count is half the contact count rounded up to the nearest 16 bytes
-
-        #                             # Each block of data is 1f400 bytes long
-
-        #     block = int(i/0x1f40)
-        #     address = offset + (block * 0x40000) + ((i % 0x1f40) * 16) # Each block is offset by 0x40000
-
-        #     data = self.readMemory(address, 16)
-        #     self.update2.emit(i, read_count, 'Order Read')
-        #     if data[0] != 0xff:
-        #         contact_id_data.append(data[0:8])
-        #     if data[8] != 0xff:
-        #         contact_id_data.append(data[8:16])
-        #     if data[0] == 0xff or data[8] == 0xff:
-        #         break
-
-        
-
-        # Format List
-        # for i, c in enumerate(contact_id_data):
-        #     call_type = Bit.getBit(c[0], 0)
-        #     dmr_id = int(hex(int.from_bytes(c[0:4], 'little') >> 1).replace('0x', '')) # 16777215 = All Call
-        #     offset = int.from_bytes(c[4:8], 'little')
-        #     contact_id_list.append((call_type, dmr_id, offset))
-
-        # contact_data_buffer = bytearray()
-        # for i in range(blocks):
-        #     address = 0x5500000 + (i * 0x40000)
-        #     self.update2.emit(i, blocks, 'Reading Contact Data')
-        #     for j in range(0, 0x186a0, 16):
-        #         data = self.readMemory(address + j, 16)
-        #         if data.startswith(b'\xff'):
-        #             break
-        #         contact_data_buffer.extend(data)
 
         contact_data = bytearray()
         offset = 0
@@ -355,7 +718,6 @@ class AnyToneDevice(QObject):
             self.update2.emit(i, contact_count, 'Reading Contacts')
 
             if len(contact_data) - offset < 0x80:
-                # print(len(contact_data), offset)
                 contact_data.extend(self.getDigitalContactDataBuffer(len(contact_data)))
 
 
@@ -394,7 +756,6 @@ class AnyToneDevice(QObject):
             eos = contact_data.find(b'\x00', offset)
             dc.remarks = contact_data[offset:eos].decode('utf-8')
             offset = eos + 1
-            
     def getDigitalContactDataBuffer(self, offset) -> bytes:
         data = b''
         if offset % 16 != 0:
@@ -418,8 +779,8 @@ class AnyToneDevice(QObject):
         data_0 = self.readMemory(0x2640000, 0x4f0) # Talkgroup Set List = 0
         # vfo_a_data = self.readMemory(0xfc0800, 0x80) # VFO Primary Data
         # vfo_b_data = self.readMemory(0xfc2800, 0x80) # VFO Secondary Data
-        roaming_zone_set_data = self.readMemory(0x1042000, 0x20) # Roaming Channel Set List = 1 |
-        roaming_channel_set_data = self.readMemory(0x1042080, 0x10) # Roaming Zone Set List = 1 |
+        roaming_channel_set_data = self.readMemory(0x1042000, 0x20) # Roaming Channel Set List = 1 |
+        roaming_zone_set_data = self.readMemory(0x1042080, 0x10) # Roaming Zone Set List = 1 |
         # data_5 = self.readMemory(0x1640000, 0x640) # 
         # data_6 = self.readMemory(0x1640800, 0x70) # 
         # data_7 = self.readMemory(0x1640880, 0x10) # 
@@ -485,7 +846,6 @@ class AnyToneDevice(QObject):
 
         self.readAlarmSettings(optional_settings_data_0000, data_14, data_15)
         
-
         AnyToneMemory.optional_settings.decode(optional_settings_data_0000, optional_settings_data_0600, optional_settings_data_1280, optional_settings_data_1400)
 
         if not self.is_alive:
@@ -798,24 +1158,34 @@ class AnyToneDevice(QObject):
     def readAlarmSettings(self, data_0000: bytes, data_1400: bytes, data_1440: bytes):
         AnyToneMemory.alarm_settings.decode(data_0000, data_1400, data_1440)
 
+
+# # Use this virtual dev to save the output from the original CPS using com0com on windows.
+# dev = AnyToneDevice()
+# Preload with previously saved bin
+# with open('saved.bin', 'rb') as f:
+#     dev.bin_data = bytearray(f.read())
+# dev.startSerial("COM7")
+# # Write BIN Data once CPS is completed the write
+# with open('bin-dump3.bin', 'wb') as f:
+#     f.write(dev.bin_data)
 class AnyToneVirtualDevice(AnyToneDevice):
     verbose = False
     serial_port = None
+    save_write_data = True
 
     # Data BIN Size
     # Other Data        0x48001d0
     # Digital Contacts  0x
-    bin_data = bytearray([0xff] * 0x48001D0)
-    # contact_bin_data = bytearray([0xff] * 0x48001D0)
+    bin_data = bytearray([0xff] * 0x48001D0) # This is big enough for main data; Needs to be resized when writing or reading contact data
     is_open = True
 
-    read_dump = ''
-    address_blocks = ''
-    command_list = []
+    # Optional debugging outputs
+    address_blocks = '' # The address blocks and size that are being written
+    command_list = []   # List of all data being sent via serial port (Command, address, data length, [data, checksum], EOL)
+    max_address = 0
+
     last_block_start = 0
     last_addr = 0
-
-    max_address = 0
 
     def startSerial(self, comport):
         try:
@@ -844,6 +1214,7 @@ class AnyToneVirtualDevice(AnyToneDevice):
             self.bin_data = bytearray(self.bin_data)
         self.bin_data[address: address + len(data)] = bytearray(data)
 
+    # This is for use outside of the GUI to read serial data. 
     def readSerial(self):
         if self.serial_port == None:
             print("Serial port not set")
@@ -879,13 +1250,9 @@ class AnyToneVirtualDevice(AnyToneDevice):
 
                 self.last_addr = address
 
-                # if address + 0x10 <= len(self.bin_data):
-                # if address < 0x4000000:
-                for i, b in enumerate(bytearray(rdata)):
-                    self.bin_data[address + i] = b
-                # else:
-                #     for i, b in enumerate(bytearray(rdata)):
-                #         self.contact_bin_data[address - 0x4000000 + i] = b
+                if self.save_write_data:
+                    for i, b in enumerate(bytearray(rdata)):
+                        self.bin_data[address + i] = b
 
                 command = b'\x06'
 
@@ -900,7 +1267,6 @@ class AnyToneVirtualDevice(AnyToneDevice):
                 if self.last_addr > address or address != self.last_addr + 0x10:
                     self.address_blocks += 'R ' + hex(self.last_block_start) + ' - ' + hex(self.last_addr + 16 - self.last_block_start) + '\r' # + ' ' + hex(self.last_addr+16) + '\r'
                     self.last_block_start = address
-                # self.read_dump += hex(address) + ' ' + str(data_length) + '\r'
 
                 self.last_addr = address
 
@@ -921,7 +1287,7 @@ class AnyToneVirtualDevice(AnyToneDevice):
                 command = b'\x06'
                 self.is_open = False
                 self.address_blocks += hex(self.last_block_start) + ' - ' + hex(self.last_addr+16)
-                print("MAX Address:", hex(self.max_address + 0x10))
+                # print("MAX Address:", hex(self.max_address + 0x10))
 
             # print(command)
             self.serial_port.write(command)
@@ -956,25 +1322,24 @@ class AnyToneVirtualDevice(AnyToneDevice):
                 exit()
 
     def readLocalInfo(self, extended=False):
-        return ''
+        return bytes(0x100)
     
     def readDeviceInfo(self):
         return ('ID878UV2', 'V101')
     
 class AnyToneSerial(AnyToneDevice):
-    serial_port = None
+    serial_port: QSerialPort = None
     device_info = (b'', b'')
 
     max_bytes_per_read_message = 16 # Anytone CPS uses 16, up to 255 possible
     max_bytes_per_write_message = 16 # Anytone CPS uses 16, more possible?
 
+    # Serial Functions
     def connect(self, portname: str, baud=921600):
         self.serial_port = QSerialPort()
         self.serial_port.setPortName(portname)
         self.serial_port.setBaudRate(baud)
-        # self.serial_port.readyRead.connect(self.readyRead)
 
-        
         if self.serial_port.open(QSerialPort.ReadWrite):
             self.is_alive = True
             if self.startProgMode():
@@ -1000,6 +1365,7 @@ class AnyToneSerial(AnyToneDevice):
 
         return data
     
+    # Radio Functions
     def startProgMode(self):
         self.serial_port.write(b'PROGRAM')
 
@@ -1024,9 +1390,8 @@ class AnyToneSerial(AnyToneDevice):
         # change to update mode
         self.serial_port.write(b'UPDATE')
 
-        resp = self.serial_port.read()
-        while self.serial_port.in_waiting > 0:
-            resp += self.serial_port.read()
+        resp = self.read_blocking()
+        
         if resp != b'\x06':
             print ('ERR: Unexpected response from device (' + str(resp) + ')' )
             exit()
@@ -1036,9 +1401,7 @@ class AnyToneSerial(AnyToneDevice):
         # leave pc mode
         self.serial_port.write(b'\x18')
 
-        resp = self.serial_port.read()
-        while self.serial_port.in_waiting > 0:
-            resp += self.serial_port.read()
+        resp = self.read_blocking()
 
         if resp != b'\x06':
             print ('ERR: Unexpected response from device (' + str(resp) + ')' )
@@ -1064,64 +1427,6 @@ class AnyToneSerial(AnyToneDevice):
         device_info =  ( resp[0:8].decode('utf-8').rstrip('\x00'), resp[9:14].decode('utf-8').rstrip('\x00'))
         return device_info
     
-    def prinDebugMessage(self, message):
-        if len(message) > 8: # 1 byte command + 4 byte address + 1 byte length + 1 byte checksum + 1 byte ACK
-            # at least 1 byte data present
-
-            print( message[0:1].hex() + ' | ' + message[1:5].hex() + ' | ' + message[5:6].hex() + ' || ', end = '' )
-
-
-            # print data as hex
-            startdata = 6
-            enddata = len(message) - 3
-            
-            i = startdata
-            j = 0
-            while i <= enddata:
-                print('{0:0{1}x}'.format(message[i],2), end = '')
-                if j == 3:
-                    print(' ' , end = '')
-                    j = 0
-                else:
-                    j += 1
-                i += 1
-
-            # print checksum and ack
-            print ( '| ' + message[enddata+1:enddata+2].hex() + ' ' + message[enddata+2:enddata+3].hex() + ' || ', end = '' )
-
-            # print data as ascii with spaces
-            i = startdata
-            j = 0
-            while i <= enddata:
-                idec = message[i]
-                if (32 <= idec and idec < 127) or (160 <= idec):
-                    print( chr(idec), end = '')
-                else:
-                    print('.', end = '')
-                if j == 3:
-                    print(' ' , end = '')
-                    j = 0
-                else:
-                    j += 1
-                i += 1
-
-            print('|| ', end = '')
-
-            # print data as ascii without spaces
-            i = startdata
-            while i <= enddata:
-                idec = message[i]
-                if (32 <= idec and idec < 127) or (160 <= idec):
-                    print( chr(idec), end = '')
-                else:
-                    print('.', end = '')
-                i += 1
-
-            print(' || ', end = '')
-
-
-        print()
-
     def readMemoryAddress(self, address, num_bytes_left):
         if num_bytes_left % 16 != 0:
             print('Error: Memory Alignment')
@@ -1131,8 +1436,6 @@ class AnyToneSerial(AnyToneDevice):
         resp = bytearray()
             
         while num_bytes_left > 0:
-        
-            #print(num_bytes_left) # debug
         
             num_bytes = min(num_bytes_left, self.max_bytes_per_read_message)
         
@@ -1145,11 +1448,6 @@ class AnyToneSerial(AnyToneDevice):
             readcmd.append( num_bytes )
         
             self.serial_port.write(readcmd)
-        
-            # message = bytearray()
-            # message.append( ord(self.serial_port.read()) )
-            # while self.serial_port.in_waiting > 0:
-            #     message.append( ord(self.serial_port.read()) )
 
             message = self.read_blocking()
             if len(message) < 24:
@@ -1157,9 +1455,6 @@ class AnyToneSerial(AnyToneDevice):
                 return [b'', 0]
             
             checksum = sum(message[1:-2]) & 0xff
-
-            # if ( self.printDebug != 0):
-            #     self.printDebugMessage(message)
             
             # check response      
             if message[-2] != checksum:
@@ -1190,8 +1485,6 @@ class AnyToneSerial(AnyToneDevice):
             
         while num_bytes_left > 0:
         
-            #print(num_bytes_left) # debug
-        
             num_bytes = min(num_bytes_left, self.max_bytes_per_write_message)
             
             while num_bytes_left < self.max_bytes_per_write_message:
@@ -1200,8 +1493,6 @@ class AnyToneSerial(AnyToneDevice):
                 num_bytes_left += 1
                 num_bytes += 1
                 
-        
-            # 57 | 05ccab80 | 10 || ffffffff ffffffff ffffffff ffffffff | fc 06 
             writecmd = bytearray()
             writecmd.append( ord('W') )
             writecmd.append( (address & 0xff000000) >> 24 )
@@ -1217,7 +1508,7 @@ class AnyToneSerial(AnyToneDevice):
 
             checksum = sum(writecmd[1:]) & 0xff
             writecmd.append( checksum )
-            writecmd.append( 0x06 )        
+            writecmd.append( 0x06 )
             
             self.printDebugMessage(writecmd)
 
@@ -1237,7 +1528,8 @@ class AnyToneSerial(AnyToneDevice):
             else:
                 # no response. write again
                 print('WARN: No response on write request. Retransmitting at ' + str(address) )
-            
+    
+    # Unused Functions; May implement later
     def writeMemoryHex(self, address, hexdata):
         data = bytes.fromhex(hexdata)
         
@@ -1340,6 +1632,7 @@ class AnyToneSerialWorker(QRunnable):
     comport = None
     connection_attempt = 0
     is_write = False
+    image_data = b''
 
     def setComport(self, comport: str):
         self.comport = comport
@@ -1353,6 +1646,7 @@ class AnyToneSerialWorker(QRunnable):
     def run(self):
         if self.comport != None:
             self.radio_device = AnyToneSerial()
+            self.radio_device.image_data = self.image_data
             self.radio_device.read_write_options = self.read_write_options
             self.radio_device.update1.connect(self.signals.update1)
             self.radio_device.update2.connect(self.signals.update2)
@@ -1377,6 +1671,7 @@ class AnyToneSerialWorker(QRunnable):
 
         elif self.bin_file != None:
             self.radio_device = AnyToneVirtualDevice()
+            self.radio_device.image_data = self.image_data
             self.radio_device.read_write_options = self.read_write_options
             self.radio_device.update1.connect(self.signals.update1)
             self.radio_device.update2.connect(self.signals.update2)
