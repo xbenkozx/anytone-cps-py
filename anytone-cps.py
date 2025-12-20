@@ -45,7 +45,6 @@ if __name__ == "__main__":
     Theme.applyTheme(app, UserSettings.theme[0], UserSettings.theme[1])
     
     widget = MainWindow()
-    widget.debug = True
     widget.show()
     app_icon = QIcon(UI_Constants.iconPath())
     widget.setWindowIcon(app_icon)

@@ -1,5 +1,0 @@
-[User]
-theme = (0, 0)
-comport = VIRTUAL
-virt_com_file = /home/ben/Documents/VSCode/anytone-flash-tool/CPS Debug/bin-dump.bin
-

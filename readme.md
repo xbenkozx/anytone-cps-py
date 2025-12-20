@@ -14,6 +14,13 @@ Currently, this project is in Alpha stage and is a work is progress. Make sure y
 
 ---
 
+## Progress
+
+![53%](https://progress-bar.xyz/53?title=UI)
+![57%](https://progress-bar.xyz/57?title=Serial)
+![19%](https://progress-bar.xyz/19?title=Import/Export)
+
+
 ## Supported Devices
 - D878UVII
 
