@@ -7422,16 +7422,19 @@ class MainWindow(QMainWindow):
             LocalInformationDialog(self, local_info).show()
     # Write To Radio
     def showWriteOptionsDialog(self):
+        if not self.debug:
+            warn = QMessageBox.warning(
+                self,
+                "Write To Radio",
+                "This feature is incomplete. Please make sure you have backup codeplug in case there are issues writing to the radio.\n\n Do you want to continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+        if warn == QMessageBox.StandardButton.No:
+            return
         self.rwo = ReadWriteOptionsDialog(self)
         self.rwo.is_write = True
         self.rwo.show()
     def writeToRadio(self):
-        if not self.debug:
-            QMessageBox.warning(
-                self,
-                "Write To Radio",
-                "Feature disabled due to bugs"
-            )
         if self.com_port == '':
             print("Error: Comport not set")
         else:

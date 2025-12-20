@@ -1,11 +1,5 @@
 
-import sys, os, argparse
-
-### DEBUG
-# os.system('python build-ui.py')
-os.system('python compile.py')
-###
-
+import sys, argparse
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
@@ -34,11 +28,6 @@ if __name__ == "__main__":
 
     AnyToneMemory.init()
     UserSettings.load()
-
-    # atd = AnyToneVirtualDevice()
-    # with open('bin-dump2.bin', 'rb') as f:
-    #     atd.bin_data = bytearray(f.read())
-    # atd.readRadioData()
 
     app = QApplication(sys.argv)
 
