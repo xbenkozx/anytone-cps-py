@@ -15,11 +15,11 @@ Currently, this project is in Alpha stage and is a work is progress. Make sure y
 ---
 
 ## Progress
-
-![53%](https://progress-bar.xyz/53?title=UI)
-![57%](https://progress-bar.xyz/57?title=Serial)
-![19%](https://progress-bar.xyz/19?title=Import/Export)
-
+| | |
+| - | - |
+| UI | ![53%](https://progress-bar.xyz/53?width=100) |
+| Serial | ![60%](https://progress-bar.xyz/60?width=100) |
+| CSV | ![19%](https://progress-bar.xyz/19?width=100) | 
 
 ## Supported Devices
 - D878UVII
@@ -69,7 +69,7 @@ These are not fully tested.
 | Auto Repeater Offset Frequencies | R/W |
 | Alarm Settings | R/W |
 | Channels | R/W |
-| Digital Contacts | R |
+| Digital Contacts | R/W |
 | DTMF Encode/Decode | |
 | Local Information/Expert Options(AT_OPTIONS) | R |
 | FM Channels | R/W |
@@ -77,10 +77,10 @@ These are not fully tested.
 | HotKey HotKey | |
 | HotKey Quick Call | |
 | HotKey State | |
-| Local Information | |
-| Master ID | R |
+| Local Information | R |
+| Master ID | R/W |
 | Optional Settings | R/W |
-| Prefabricated SMS | R |
+| Prefabricated SMS | R/W |
 | Radio IDs | R/W |
 | Roaming Channels | R/W |
 | Roaming Zones | R/W |

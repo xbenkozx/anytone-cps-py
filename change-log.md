@@ -1,5 +1,13 @@
 # Change Log
 
+## 12-20-2025
+#### Added
+- Serial Read/Write Functions:
+    - Digital Contact
+    - Prefabricated SMS
+
+UI Updates and Bug fixes
+
 ## 12-19-2025
 #### Added
 - Serial Read/Write Functions:

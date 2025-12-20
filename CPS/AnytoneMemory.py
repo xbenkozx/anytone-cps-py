@@ -1727,6 +1727,9 @@ class PrefabricatedSMS:
         pass
     def decodeStruct(self, data):
         pass
+    def encode(self) -> bytes:
+        data = self.text.encode('utf-8').ljust(0xd0, b'\x00')
+        return data
     def decode(self, data: bytes):
         self.text = data.decode('utf-8').rstrip('\x00')
 class RadioID:

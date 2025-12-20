@@ -6459,6 +6459,18 @@ class ReadWriteOptionsDialog(QDialog):
         self.is_write = False
         self.ui.buttonBox.accepted.connect(self.setOptionsAndClose)
         self.ui.buttonBox.rejected.connect(self.close)
+        if UserSettings.read_write_options == 1:
+            self.ui.otherDataChbx.setChecked(True)
+            self.ui.digitalContactListChbx.setChecked(False)
+        elif UserSettings.read_write_options == 2:
+            self.ui.otherDataChbx.setChecked(False)
+            self.ui.digitalContactListChbx.setChecked(True)
+        elif UserSettings.read_write_options == 3:
+            self.ui.otherDataChbx.setChecked(True)
+            self.ui.digitalContactListChbx.setChecked(True)
+        else:
+            self.ui.otherDataChbx.setChecked(False)
+            self.ui.digitalContactListChbx.setChecked(False)
     def setOptionsAndClose(self):
         options = 0
         if self.ui.digitalContactListChbx.isChecked():
@@ -6466,6 +6478,8 @@ class ReadWriteOptionsDialog(QDialog):
         if self.ui.otherDataChbx.isChecked():
             options += AnyToneDevice.RADIO_DATA
         self.parent.read_write_options = options
+        UserSettings.read_write_options = options
+        UserSettings.save()
         if not self.is_write:
             self.parent.readFromRadio()
         else:
@@ -7429,8 +7443,8 @@ class MainWindow(QMainWindow):
                 "This feature is incomplete. Please make sure you have backup codeplug in case there are issues writing to the radio.\n\n Do you want to continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
-        if warn == QMessageBox.StandardButton.No:
-            return
+            if warn == QMessageBox.StandardButton.No:
+                return
         self.rwo = ReadWriteOptionsDialog(self)
         self.rwo.is_write = True
         self.rwo.show()

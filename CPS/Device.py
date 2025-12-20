@@ -62,9 +62,12 @@ class AnyToneDevice(QObject):
             self.finished.emit(AnyToneDevice.STATUS_DEVICE_MISMATCH)
             return
 
-        if self.read_write_options == AnyToneDevice.RADIO_DATA or self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
+        if self.read_write_options == AnyToneDevice.RADIO_DATA:
             self.writeOtherData()
         elif self.read_write_options == AnyToneDevice.DIGITAL_CONTACTS:
+            self.writeDigitalContacts()
+        elif self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
+            self.writeOtherData()
             self.writeDigitalContacts()
         elif self.read_write_options == AnyToneDevice.BOOT_IMAGE:
             self.writeBootImage()
@@ -103,7 +106,96 @@ class AnyToneDevice(QObject):
             self.update1.emit(i, 0, '')
     
     def writeDigitalContacts(self):
-        pass
+        self.contact_write_data = []
+        self.radio_write_data = []
+
+        contact_count_addr = 0x4840000
+        contact_order_addr = 0x4000000
+        contact_data_addr = 0x5500000
+
+        contact_data = bytearray()
+        order_data_array = []
+        order_data = bytearray()
+        contact_total = 0
+        contact_count = 0
+
+        self.update1.emit(1, 3, 'Writing Digital Contacts')
+
+        for idx, contact in enumerate(AnyToneMemory.digital_contact_list):
+            if contact.radio_id > 0:
+                contact_total += 1
+
+        sorted_contacts = sorted(AnyToneMemory.digital_contact_list, key=lambda c: (-c.call_type))
+        for idx, contact in enumerate(sorted_contacts):
+            if contact_count % int((contact_total/100)) == 0:
+                self.update2.emit(contact_count, contact_total, 'Compressing Data')
+
+            if contact.radio_id > 0:
+
+                order_radio_id_int = (int(str(contact.radio_id).rjust(8,'0'), 16) << 1) + contact.call_type
+                order_radio_id = (order_radio_id_int).to_bytes(4, 'little')
+                data_offset = len(contact_data).to_bytes(4, 'little')
+                order_data_array.append((order_radio_id_int, order_radio_id, data_offset))
+
+                contact_data.extend(contact.call_type.to_bytes(1))
+                contact_data.extend(bytes.fromhex(str(contact.radio_id).rjust(8,'0')))
+                contact_data.extend(contact.call_alert.to_bytes(1))
+                contact_data.extend(contact.name.encode('utf-8') + b'\x00')
+                contact_data.extend(contact.city.encode('utf-8') + b'\x00')
+                contact_data.extend(contact.callsign.encode('utf-8') + b'\x00')
+                contact_data.extend(contact.state.encode('utf-8') + b'\x00')
+                contact_data.extend(contact.country.encode('utf-8') + b'\x00')
+                contact_data.extend(contact.remarks.encode('utf-8') + b'\x00')
+
+                contact_count += 1
+
+        # Calc End Address
+        for idx in range(0, len(contact_data), 0x10):
+            addr_mod = idx % 0x186a0
+            block = int((idx - addr_mod) / 0x186a0)
+            addr = contact_data_addr + (block * 0x40000) + addr_mod
+
+        end_address = addr + (len(contact_data) % idx)
+
+        contact_count_data = bytearray(0x10)
+        contact_count_data[0:4] = contact_total.to_bytes(4, 'little')
+        contact_count_data[4:8] = end_address.to_bytes(4, 'little')
+
+        self.writeMemory(contact_count_addr, contact_count_data)
+
+        order_data_array.sort(key=lambda od: (od[0]))
+
+        for order_radio_id_int, order_radio_id, data_offset in order_data_array:
+            order_data.extend(order_radio_id)
+            order_data.extend(data_offset)
+
+        order_data.extend([0xff for i in range(0x10 - (len(order_data) % 0x10))])
+        contact_data.extend([0x00 for i in range(0x10 - (len(contact_data) % 0x10))])
+
+        self.update1.emit(1, 3, 'Writing Digital Contacts')
+        for idx in range(0, len(order_data), 0x10):
+            addr_mod = idx % 0x1f400
+            block = int((idx - addr_mod) / 0x1f400)
+            addr = contact_order_addr + (block * 0x40000) + addr_mod
+            data = order_data[idx: idx+0x10]
+            self.writeMemory(addr, data)
+            if int(idx / 0x10) % int((len(order_data)/ (0x10 * 100))) == 0:
+                self.update2.emit(idx, len(order_data), 'Writing Order Data')
+
+        self.update1.emit(2, 3, 'Writing Digital Contacts')
+        for idx in range(0, len(contact_data), 0x10):
+            addr_mod = idx % 0x186a0
+            block = int((idx - addr_mod) / 0x186a0)
+            addr = contact_data_addr + (block * 0x40000) + addr_mod
+            data = contact_data[idx: idx+0x10]
+            self.writeMemory(addr, data)
+            if int(idx / 0x10) % int((len(contact_data)/ (0x10 * 100))) == 0:
+                self.update2.emit(idx, len(contact_data), 'Writing Digital Data')
+
+        self.update1.emit(3, 3, 'Finishing...')
+        self.update2.emit(0, 0, '')
+
+        print('done')
     
     def writeOtherData(self):
         self.radio_write_data = []
@@ -119,6 +211,7 @@ class AnyToneDevice(QObject):
         self.writeRoamingZoneData()
         self.writeSettingsData()
         self.writeMasterRadioIdData()
+        self.writePrefabSms()
 
         self.radio_write_data.sort(key=lambda x: x[0])
         self.update1.emit(0, 0, 'Writing Data')
@@ -326,6 +419,7 @@ class AnyToneDevice(QObject):
         self.radio_write_data.append((header_offset, bytes(id_set_list)))
 
     def writeSettingsData(self):
+        # Writes Alarm Settings and Optional Settings
         data_0000_addr = 0x2500000 # 0xf0
         data_0600_addr = 0x2500600 # 0x30
         data_1280_addr = 0x2501280 # 0x20
@@ -639,6 +733,14 @@ class AnyToneDevice(QObject):
         data = AnyToneMemory.master_radioid.encode()
         self.radio_write_data.append((0x2582000, data))
 
+    def writePrefabSms(self):
+        offset = 0x2140000
+        for idx, sms in enumerate(AnyToneMemory.prefabricated_sms_list):
+            if len(sms.text) > 0:
+                block = int(((idx * 0x100) - idx % 0x800) / 0x800)
+                addr = offset + (block * 0x40000) + ((idx * 0x100) % 0x800)
+                data = sms.encode()
+                self.radio_write_data.append((addr, data))
 
     # Read Memory Functions
     def readBootImage(self):
@@ -673,9 +775,12 @@ class AnyToneDevice(QObject):
             self.finished.emit(AnyToneDevice.STATUS_DEVICE_MISMATCH)
             return
 
-        if self.read_write_options == AnyToneDevice.RADIO_DATA or self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
+        if self.read_write_options == AnyToneDevice.RADIO_DATA:
             self.readOtherData()
         elif self.read_write_options == AnyToneDevice.DIGITAL_CONTACTS:
+            self.readDigitalContacts()
+        elif self.read_write_options == AnyToneDevice.RADIO_DATA_CONTACTS:
+            self.readOtherData()
             self.readDigitalContacts()
         elif self.read_write_options == AnyToneDevice.BOOT_IMAGE:
             self.readBootImage()
@@ -691,7 +796,8 @@ class AnyToneDevice(QObject):
         contact_data = bytearray()
         offset = 0
         for i in range(contact_count):
-            self.update2.emit(i, contact_count, 'Reading Contacts')
+            if i % int((contact_count/100)) == 0:
+                self.update2.emit(i, contact_count, 'Reading Contacts')
 
             if len(contact_data) - offset < 0x80:
                 contact_data.extend(self.getDigitalContactDataBuffer(len(contact_data)))
@@ -732,6 +838,7 @@ class AnyToneDevice(QObject):
             eos = contact_data.find(b'\x00', offset)
             dc.remarks = contact_data[offset:eos].decode('utf-8')
             offset = eos + 1
+
     def getDigitalContactDataBuffer(self, offset) -> bytes:
         data = b''
         if offset % 16 != 0:
@@ -1123,7 +1230,7 @@ class AnyToneDevice(QObject):
     def readPrefabSms(self, index_list: list[int]):
         offset = 0x2140000
         for i, idx in enumerate(index_list):
-            self.update2.emit(i, len(index_list), 'Reading Scan Lists')
+            self.update2.emit(i, len(index_list), 'Reading Prefabricated SMS')
             block = int(((idx * 0x100) - idx % 0x800) / 0x800)
             addr = offset + (block * 0x40000) + ((idx * 0x100) % 0x800)
             sms_data = self.readMemory(addr, 0xd0)

@@ -1,5 +1,11 @@
 
-import sys, argparse
+import sys, argparse, os
+
+### DEBUG
+# os.system('python build-ui.py')
+os.system('python compile.py')
+###
+
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
