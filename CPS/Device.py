@@ -1,4 +1,4 @@
-from CPS.AnytoneMemory import AnyToneMemory, Channel
+from CPS.AnytoneMemory import AnyToneMemory, PrefabricatedSMS
 from CPS.Utils import Bit
 from serial import Serial
 import time, os
@@ -84,7 +84,6 @@ class AnyToneDevice(QObject):
         for i in range(0, 0xa000, 0x10):
             self.writeMemory(0x2ac0000 + i, self.image_data[i:i+0x10])
             self.update1.emit(i, 0, '')
-
     def writeBk1Image(self):
         print('bk1')
         if len(self.image_data) != 0xa000:
@@ -94,7 +93,6 @@ class AnyToneDevice(QObject):
         for i in range(0, 0xa000, 0x10):
             self.writeMemory(0x2b00000 + i, self.image_data[i:i+0x10])
             self.update1.emit(i, 0, '')
-
     def writeBk2Image(self):
         print('bk2')
         if len(self.image_data) != 0xa000:
@@ -103,7 +101,7 @@ class AnyToneDevice(QObject):
         
         for i in range(0, 0xa000, 0x10):
             self.writeMemory(0x2b80000 + i, self.image_data[i:i+0x10])
-            self.update1.emit(i, 0, '')
+            self.update1.emit(i, 0, '') 
     
     def writeDigitalContacts(self):
         self.contact_write_data = []
@@ -212,6 +210,7 @@ class AnyToneDevice(QObject):
         self.writeSettingsData()
         self.writeMasterRadioIdData()
         self.writePrefabSms()
+        self.writeAesKeys()
 
         self.radio_write_data.sort(key=lambda x: x[0])
         self.update1.emit(0, 0, 'Writing Data')
@@ -228,7 +227,6 @@ class AnyToneDevice(QObject):
         #             print(desc, hex(addr), hex(len(data)))
         #         self.update2.emit(j, len(write_list), desc)
         #         self.writeMemory(addr, data)
-
     def writeChannelData(self):
         channel_data_offset = 0x800000
         channel_set_list = bytearray(0x200)
@@ -248,8 +246,7 @@ class AnyToneDevice(QObject):
                 if not self.is_alive:
                     self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
 
-        self.radio_write_data.append((0x24c1500, bytes(channel_set_list)))
-            
+        self.radio_write_data.append((0x24c1500, bytes(channel_set_list)))           
     def writeZoneData(self):
         zone_set_list_addr = 0x24c1300 #0x20
         zone_names_addr = 0x2540000
@@ -299,7 +296,6 @@ class AnyToneDevice(QObject):
         self.radio_write_data.append((zone_hide_addr, zone_hide_data))
 
         self.radio_write_data.append((zone_set_list_addr, bytes(zone_set_list_data)))
-
     def writeTalkgroupData(self):
         tg_set_list_addr = 0x2640000
         tg_data_list_addr = 0x2680000
@@ -318,7 +314,6 @@ class AnyToneDevice(QObject):
 
         self.radio_write_data.append((tg_set_list_addr, tg_set_list_data))
         self.radio_write_data.append((tg_data_list_addr, tg_data))
-
     def writeRadioIdData(self):
         radio_id_set_list_addr = 0x24c1320 #0x20
         radio_id_set_list = bytearray(0x20)
@@ -331,7 +326,6 @@ class AnyToneDevice(QObject):
                 self.radio_write_data.append((radio_id_data_addr + (i * 0x20), rid.encode()))
 
         self.radio_write_data.append((radio_id_set_list_addr, bytes(radio_id_set_list)))
-
     def writeScanListData(self):
         scan_list_set_list_addr = 0x24c1340 #0x20
         scan_list_data_addr = 0x1080000
@@ -344,7 +338,6 @@ class AnyToneDevice(QObject):
                 self.radio_write_data.append((scan_list_data_addr + (i * 0x200), sl.encode()))
 
         self.radio_write_data.append((scan_list_set_list_addr, bytes(scan_list_set_data)))
-
     def writeFMChannelData(self):
         fm_active_scan_addr = 0x2480200
         fm_data = bytearray(0x30)
@@ -372,7 +365,6 @@ class AnyToneDevice(QObject):
 
         self.radio_write_data.append((fm_active_scan_addr, fm_data))
         self.radio_write_data.append((0x2480000, fm_freq_data))
-
     def writeGpsRoamingData(self):
 
         for gps_idx in range(32):
@@ -381,16 +373,14 @@ class AnyToneDevice(QObject):
             if gps_idx >= 16:
                 gps_addr += 0x10
             gps_data = AnyToneMemory.gps_roaming_list[gps_idx].encode()
-            self.radio_write_data.append((gps_addr, gps_data))
-    
+            self.radio_write_data.append((gps_addr, gps_data)) 
     def writeAutoRepeaterFrequencyData(self):
         data = bytearray(0x3f0)
         for i, arf in enumerate(AnyToneMemory.auto_repeater_freq_list):
             addr = i*4
             data[addr:addr+4] = arf.frequency.to_bytes(4, 'little')
 
-        self.radio_write_data.append((0x24c2000, data))
-    
+        self.radio_write_data.append((0x24c2000, data)) 
     def writeRoamingChannelData(self):
         header_offset = 0x1042000 #
         data_offset = 0x1040000
@@ -403,7 +393,6 @@ class AnyToneDevice(QObject):
                 self.radio_write_data.append((data_offset + (i * 0x20), rc.encode()))
 
         self.radio_write_data.append((header_offset, bytes(id_set_list)))
-
     def writeRoamingZoneData(self):
         header_offset = 0x1042080
         data_offset = 0x1043000
@@ -417,7 +406,6 @@ class AnyToneDevice(QObject):
                 self.radio_write_data.append((data_offset + (i * 0x50), rz.encode()))
 
         self.radio_write_data.append((header_offset, bytes(id_set_list)))
-
     def writeSettingsData(self):
         # Writes Alarm Settings and Optional Settings
         data_0000_addr = 0x2500000 # 0xf0
@@ -728,19 +716,54 @@ class AnyToneDevice(QObject):
         self.radio_write_data.append((data_1400_addr, data_1400))
         self.radio_write_data.append((data_14_addr, data_14))
         self.radio_write_data.append((data_15_addr, data_15))
-
     def writeMasterRadioIdData(self):
         data = AnyToneMemory.master_radioid.encode()
         self.radio_write_data.append((0x2582000, data))
-
     def writePrefabSms(self):
         offset = 0x2140000
+        sms_set_offset = 0x1640000
+
+        active_list: list[PrefabricatedSMS] = []
+
+        for idx, sms in enumerate(AnyToneMemory.prefabricated_sms_list):
+            if len(sms.text) > 0:
+                active_list.append(sms)
+
+        for idx, sms in enumerate(active_list):
+            set_addr = sms_set_offset + (idx * 0x10)
+            set_data = bytearray(0x10)
+            if idx >= len(active_list) - 1:
+                next_idx = 0xff
+            else:
+                next_idx = active_list[idx+1].id
+
+            set_data[2] = next_idx
+            set_data[3] = sms.id
+
+            self.radio_write_data.append((set_addr, set_data))
+
         for idx, sms in enumerate(AnyToneMemory.prefabricated_sms_list):
             if len(sms.text) > 0:
                 block = int(((idx * 0x100) - idx % 0x800) / 0x800)
                 addr = offset + (block * 0x40000) + ((idx * 0x100) % 0x800)
                 data = sms.encode()
                 self.radio_write_data.append((addr, data))
+
+        # self.radio_write_data.append((sms_set_offset, id_set_list))
+    def writeAesKeys(self):
+        aes_active_addr = 0x24c8000
+        aes_data_addr = 0x24c4000
+
+        id_set_list = bytearray(0x20)
+        for i, key in enumerate(AnyToneMemory.aes_encryption_keys):
+            if len(key.key) > 0:
+                current_byte_idx = int((i - (i % 8))/8)
+                id_set_list[current_byte_idx] = Bit.setBit(id_set_list[current_byte_idx], i % 8, True)
+
+                data_addr = aes_data_addr + (i * 0x40)
+                self.radio_write_data.append((data_addr, key.encode()))
+
+        self.radio_write_data.append((aes_active_addr, id_set_list))
 
     # Read Memory Functions
     def readBootImage(self):
@@ -838,7 +861,6 @@ class AnyToneDevice(QObject):
             eos = contact_data.find(b'\x00', offset)
             dc.remarks = contact_data[offset:eos].decode('utf-8')
             offset = eos + 1
-
     def getDigitalContactDataBuffer(self, offset) -> bytes:
         data = b''
         if offset % 16 != 0:
@@ -864,7 +886,7 @@ class AnyToneDevice(QObject):
         # vfo_b_data = self.readMemory(0xfc2800, 0x80) # VFO Secondary Data
         roaming_channel_set_data = self.readMemory(0x1042000, 0x20) # Roaming Channel Set List = 1 |
         roaming_zone_set_data = self.readMemory(0x1042080, 0x10) # Roaming Zone Set List = 1 |
-        # data_5 = self.readMemory(0x1640000, 0x640) # 
+        # data_5 = self.readMemory(0x1640000, 0x640) # Prefab set list
         # data_6 = self.readMemory(0x1640800, 0x70) # 
         # data_7 = self.readMemory(0x1640880, 0x10) # 
         fm_data = self.readMemory(0x2480200, 0x30) # FM VFO & Active/Scan
@@ -934,9 +956,11 @@ class AnyToneDevice(QObject):
         if not self.is_alive:
             return self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
         # Create Prefab SMS List
+
+        #TODO: Revise
         sms_index_list = []
         current_index = 0
-        while(current_index < 101):
+        while(current_index <= 100):
             addr = 0x1640000 + (current_index * 0x10)
             sms_data = self.readMemory(addr, 0x10)
             if sms_data[3] == 0xff:
@@ -1078,6 +1102,10 @@ class AnyToneDevice(QObject):
         self.update1.emit(9, 8, 'Reading Data')
         self.readPrefabSms(sms_index_list)
 
+        # AES Data
+        self.update1.emit(9, 8, 'Reading Data')
+        self.readAesKeys()
+
         # GPS Roaming
         self.update1.emit(8, 8, 'Reading Data')
         for gps_idx in range(32):
@@ -1106,7 +1134,6 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.roaming_channels[idx].decode(data)
-
     def readRoamingZoneData(self, index_list: list[int]):
         offset = 0x1043000
         for i, idx in enumerate(index_list):
@@ -1116,14 +1143,12 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.roaming_zones[idx].decode(data)
-
     def readAutoRepeaterFrequencyData(self, data: bytes):
         for i in range(250):
             self.update2.emit(i, 250, 'Reading Auto Repeater Frequencies')
             arf = AnyToneMemory.auto_repeater_freq_list[i]
             addr = i*4
-            arf.frequency = int.from_bytes(data[addr:addr+4], 'little')
-        
+            arf.frequency = int.from_bytes(data[addr:addr+4], 'little')     
     def readRadioChannelData(self, index_list: list[int]):
         offset = 0x800000
         for i, idx in enumerate(index_list):
@@ -1139,7 +1164,6 @@ class AnyToneDevice(QObject):
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
 
             AnyToneMemory.channels[idx].decode(channel_primary_data, channel_secondary_data)
-
     def readTalkGroupData(self, index_list: list[int]):
         offset = 0x2680000
         for i, idx in enumerate(index_list):
@@ -1149,7 +1173,6 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.talkgroups[idx].decode(tg_data)
-
     def readZoneData(self, index_list: list[int]):
         zone_name_offset = 0x2540000
         zone_channel_offset = 0x1000000
@@ -1185,7 +1208,6 @@ class AnyToneDevice(QObject):
                 # # B Channel
                 AnyToneMemory.zones[idx].b_channel = int.from_bytes(zone_b_channel_data[idx * 2: idx * 2 + 2], 'little')
                 AnyToneMemory.zones[idx].hide = Bit.getBit(zone_hide_data[int(idx/8)], idx % 8)
-
     def readRadioIdData(self, index_list: list[int]):
         offset = 0x2580000
         for i, idx in enumerate(index_list):
@@ -1195,7 +1217,6 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.radioid_list[idx].decode(radioid_data)
-
     def readScanListData(self, index_list: list[int]):
         offset = 0x1080000
         for i, idx in enumerate(index_list):
@@ -1205,7 +1226,6 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.scanlist[idx].decode(scan_list_data)
-
     def readFM(self, fm_data: bytes):
         AnyToneMemory.fm_channels[-1].frequency = int(fm_data[0:4].hex())
         fm_freq_data = bytearray(400)
@@ -1226,7 +1246,6 @@ class AnyToneDevice(QObject):
                     fm_ch = AnyToneMemory.fm_channels[fm_index]
                     fm_ch.scan_add = scan_add
                     fm_ch.frequency = int(fm_freq_data[fm_index*4:(fm_index*4) + 4].hex())
-
     def readPrefabSms(self, index_list: list[int]):
         offset = 0x2140000
         for i, idx in enumerate(index_list):
@@ -1237,10 +1256,14 @@ class AnyToneDevice(QObject):
             if not self.is_alive:
                 self.finished.emit(AnyToneDevice.STATUS_COM_ERROR)
             AnyToneMemory.prefabricated_sms_list[idx].decode(sms_data)
-
     def readAlarmSettings(self, data_0000: bytes, data_1400: bytes, data_1440: bytes):
         AnyToneMemory.alarm_settings.decode(data_0000, data_1400, data_1440)
-
+    def readAesKeys(self):
+        aes_key_addr = 0x24c4000
+        for i in range(255):
+            key = AnyToneMemory.aes_encryption_keys[i]
+            addr = aes_key_addr + (i*0x40)
+            key.decode(self.readMemory(addr, 0x30))
 
 # # Use this virtual dev to save the output from the original CPS using com0com on windows.
 # dev = AnyToneDevice()

@@ -336,6 +336,34 @@ class FMItemModel(QStandardItemModel):
             self.setItem(idx, 2, QStandardItem(Constants.FM_SCAN[fm.scan_add]))
             for i in range(1, len(self.TABLE_HEADERS)):
                 self.item(idx, i).setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
+class AesEncryptionCodeItemModel(QStandardItemModel):
+    TABLE_HEADERS = [
+        'No.',
+        'Encryption ID',
+        'Encryption Key'
+    ]
+    def __init__(self, data=None):
+        super().__init__()
+        self.load()
+    def load(self):
+        self.key_data = AnyToneMemory.aes_encryption_keys
+        self.setHorizontalHeaderLabels(self.TABLE_HEADERS)
+        for idx, key in enumerate(self.key_data):
+            key: AesEncryptionCode = key
+            self.setItem(idx, 0, QStandardItem(str(idx+1)))
+            self.setItem(idx, 1, QStandardItem(str(key.id) if key.id > 0 else 'Off'))
+            if key.key_length == 0 and key.id > 0:
+                key_item = QStandardItem('XXXXXXXX')
+            elif key.id == 0 and key.key_length > 0:
+                key_item = QStandardItem(key.key)
+                key_item.setForeground(QColor("silver"))
+            elif key.key_length > 0 and key.id > 0:
+                key_item = QStandardItem(key.key)
+            else:
+                key_item = QStandardItem('')
+            self.setItem(idx, 2, key_item)
+            for i in range(0, len(self.TABLE_HEADERS)):
+                self.item(idx, i).setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
 class GpsRoamingItemModel(QStandardItemModel):
     TABLE_HEADERS = [
         'No.',
@@ -1685,6 +1713,51 @@ class Ui_RetryConnectionDialog(object):
     def retranslateUi(self, RetryConnectionDialog):
         RetryConnectionDialog.setWindowTitle(QCoreApplication.translate("RetryConnectionDialog", u"Dialog", None))
         self.label.setText(QCoreApplication.translate("RetryConnectionDialog", u"Connection Failed. Retry or Cancel?", None))
+class Ui_PrefabricatedSmsEditDialog(object):
+    def setupUi(self, PrefabricatedSmsEditDialog):
+        if not PrefabricatedSmsEditDialog.objectName():
+            PrefabricatedSmsEditDialog.setObjectName(u"PrefabricatedSmsEditDialog")
+        PrefabricatedSmsEditDialog.resize(400, 194)
+        self.verticalLayout = QVBoxLayout(PrefabricatedSmsEditDialog)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.label = QLabel(PrefabricatedSmsEditDialog)
+        self.label.setObjectName(u"label")
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
+        self.plainTextEdit = QPlainTextEdit(PrefabricatedSmsEditDialog)
+        self.plainTextEdit.setObjectName(u"plainTextEdit")
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.plainTextEdit)
+        self.verticalLayout.addLayout(self.formLayout)
+        self.widget = QWidget(PrefabricatedSmsEditDialog)
+        self.widget.setObjectName(u"widget")
+        self.horizontalLayout_2 = QHBoxLayout(self.widget)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.buttonBox = QDialogButtonBox(self.widget)
+        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok)
+        self.horizontalLayout_2.addWidget(self.buttonBox)
+        self.widget_2 = QWidget(self.widget)
+        self.widget_2.setObjectName(u"widget_2")
+        self.horizontalLayout = QHBoxLayout(self.widget_2)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.prevBtn = QPushButton(self.widget_2)
+        self.prevBtn.setObjectName(u"prevBtn")
+        self.horizontalLayout.addWidget(self.prevBtn)
+        self.nextBtn = QPushButton(self.widget_2)
+        self.nextBtn.setObjectName(u"nextBtn")
+        self.horizontalLayout.addWidget(self.nextBtn)
+        self.horizontalLayout_2.addWidget(self.widget_2)
+        self.verticalLayout.addWidget(self.widget)
+        self.retranslateUi(PrefabricatedSmsEditDialog)
+        self.buttonBox.accepted.connect(PrefabricatedSmsEditDialog.accept)
+        self.buttonBox.rejected.connect(PrefabricatedSmsEditDialog.reject)
+    def retranslateUi(self, PrefabricatedSmsEditDialog):
+        PrefabricatedSmsEditDialog.setWindowTitle(QCoreApplication.translate("PrefabricatedSmsEditDialog", u"Dialog", None))
+        self.label.setText(QCoreApplication.translate("PrefabricatedSmsEditDialog", u"Content", None))
+        self.prevBtn.setText(QCoreApplication.translate("PrefabricatedSmsEditDialog", u"Previous", None))
+        self.nextBtn.setText(QCoreApplication.translate("PrefabricatedSmsEditDialog", u"Next", None))
 class Ui_DeviceInformationDialog(object):
     def setupUi(self, DeviceInformationDialog):
         if not DeviceInformationDialog.objectName():
@@ -6141,6 +6214,66 @@ class Ui_ComportDialog(object):
         ComportDialog.setWindowTitle(QCoreApplication.translate("ComportDialog", u"Dialog", None))
         self.label.setText(QCoreApplication.translate("ComportDialog", u"Comm Port", None))
         self.fileBtn.setText(QCoreApplication.translate("ComportDialog", u"Choose File...", None))
+class Ui_AesEncryptionCodeEditDialog(object):
+    def setupUi(self, AesEncryptionCodeEditDialog):
+        if not AesEncryptionCodeEditDialog.objectName():
+            AesEncryptionCodeEditDialog.setObjectName(u"AesEncryptionCodeEditDialog")
+        AesEncryptionCodeEditDialog.resize(400, 154)
+        self.verticalLayout = QVBoxLayout(AesEncryptionCodeEditDialog)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.widget = QWidget(AesEncryptionCodeEditDialog)
+        self.widget.setObjectName(u"widget")
+        self.verticalLayout_2 = QVBoxLayout(self.widget)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setLabelAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.label = QLabel(self.widget)
+        self.label.setObjectName(u"label")
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
+        self.label_2 = QLabel(self.widget)
+        self.label_2.setObjectName(u"label_2")
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
+        self.keyTxt = QLineEdit(self.widget)
+        self.keyTxt.setObjectName(u"keyTxt")
+        self.keyTxt.setMaxLength(40)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.keyTxt)
+        self.idCmbx = QComboBox(self.widget)
+        self.idCmbx.setObjectName(u"idCmbx")
+        self.idCmbx.setMaximumSize(QSize(100, 16777215))
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.idCmbx)
+        self.verticalLayout_2.addLayout(self.formLayout)
+        self.verticalLayout.addWidget(self.widget)
+        self.widget_2 = QWidget(AesEncryptionCodeEditDialog)
+        self.widget_2.setObjectName(u"widget_2")
+        self.horizontalLayout = QHBoxLayout(self.widget_2)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.buttonBox = QDialogButtonBox(self.widget_2)
+        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok)
+        self.horizontalLayout.addWidget(self.buttonBox)
+        self.widget_3 = QWidget(self.widget_2)
+        self.widget_3.setObjectName(u"widget_3")
+        self.horizontalLayout_2 = QHBoxLayout(self.widget_3)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.prevBtn = QPushButton(self.widget_3)
+        self.prevBtn.setObjectName(u"prevBtn")
+        self.horizontalLayout_2.addWidget(self.prevBtn)
+        self.nextBtn = QPushButton(self.widget_3)
+        self.nextBtn.setObjectName(u"nextBtn")
+        self.horizontalLayout_2.addWidget(self.nextBtn)
+        self.horizontalLayout.addWidget(self.widget_3)
+        self.verticalLayout.addWidget(self.widget_2)
+        self.retranslateUi(AesEncryptionCodeEditDialog)
+        self.buttonBox.accepted.connect(AesEncryptionCodeEditDialog.accept)
+        self.buttonBox.rejected.connect(AesEncryptionCodeEditDialog.reject)
+    def retranslateUi(self, AesEncryptionCodeEditDialog):
+        AesEncryptionCodeEditDialog.setWindowTitle(QCoreApplication.translate("AesEncryptionCodeEditDialog", u"Dialog", None))
+        self.label.setText(QCoreApplication.translate("AesEncryptionCodeEditDialog", u"Encryption Id", None))
+        self.label_2.setText(QCoreApplication.translate("AesEncryptionCodeEditDialog", u"Encryption Key", None))
+        self.prevBtn.setText(QCoreApplication.translate("AesEncryptionCodeEditDialog", u"Previous", None))
+        self.nextBtn.setText(QCoreApplication.translate("AesEncryptionCodeEditDialog", u"Next", None))
 class Ui_RadioIdEditDialog(object):
     def setupUi(self, RadioIdEditDialog):
         if not RadioIdEditDialog.objectName():
@@ -7169,7 +7302,6 @@ class MainWindow(QMainWindow):
         'Hot Key',
         'APRS',
         'Encryption Code',
-        'AES Encryption Code',
         'ARC4 Encryption Code',
         'Friends List',
         'Talk Alias Settings',
@@ -7577,6 +7709,9 @@ class MainWindow(QMainWindow):
         elif item_text == 'Receive Group Call List':
             self.table_view_name = item_text
             self.listReceiveGroupCallLists()
+        elif item_text == 'AES Encryption Code':
+            self.table_view_name = item_text
+            self.listAesEncryptionKeys()
         elif item.text(1) == 'Digital Contact List':
             self.table_view_name = item_text
             start_idx = int(item_text.split('---')[0]) - 1
@@ -7630,6 +7765,10 @@ class MainWindow(QMainWindow):
             RoamingZoneEditDialog(self, row_index).show()
         elif selected_table_view == "Roaming Channel":
             RoamingChannelEditDialog(self, row_index).show()
+        elif selected_table_view == "AES Encryption Code":
+            AesEncryptionCodeEditDialog(self, row_index).show()
+        elif selected_table_view == 'Prefabricated SMS':
+            PrefabricatedSmsEditDialog(self, row_index).show()
     # Channel
     def copySelectedChannels(self):
         selected_indexes = self.ui.tableView.selectedIndexes()
@@ -7854,6 +7993,14 @@ class MainWindow(QMainWindow):
         self.ui.tableView.setColumnWidth(7, 150)
         self.ui.tableView.setColumnWidth(8, 150)
         self.ui.tableView.setColumnWidth(9, 150)
+        if goto_top:
+            self.ui.tableView.verticalScrollBar().setValue(0)
+    def listAesEncryptionKeys(self, goto_top = True):
+        model = AesEncryptionCodeItemModel()
+        self.ui.tableView.setModel(model)
+        self.ui.tableView.setColumnWidth(0, 70)
+        self.ui.tableView.setColumnWidth(1, 100)
+        self.ui.tableView.setColumnWidth(2, 600)
         if goto_top:
             self.ui.tableView.verticalScrollBar().setValue(0)
     #Dialogs
@@ -8298,6 +8445,40 @@ class FmEditDialog(QDialog):
             elif dec > 108:
                 dec = 108
             self.ui.frequencyTxt.setText(format(f'{dec:.2f}'))
+class PrefabricatedSmsEditDialog(QDialog):
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_PrefabricatedSmsEditDialog()
+        self.ui.setupUi(self)
+        self.index = index
+        self.setWindowTitle("Prefabricated SMS Edit---" + str(index+1))
+        self.ui.prevBtn.clicked.connect(self.prevBtnClicked)
+        self.ui.nextBtn.clicked.connect(self.nextBtnClicked)
+        self.ui.buttonBox.accepted.connect(self.save)
+        self.loadData()
+    def prevBtnClicked(self):
+        if self.index > 0:
+            self.index -= 1
+            self.loadData()
+        if self.index == 0:
+            self.ui.prevBtn.setDisabled(True)
+        else:
+            self.ui.prevBtn.setDisabled(False)
+    def nextBtnClicked(self):
+        if self.index < len(AnyToneMemory.prefabricated_sms_list) - 2:
+            self.index += 1
+            self.loadData()
+        if self.index == len(AnyToneMemory.prefabricated_sms_list) - 1:
+            self.ui.prevBtn.setDisabled(True)
+        else:
+            self.ui.prevBtn.setDisabled(False)
+    def loadData(self):
+        self.sms = AnyToneMemory.prefabricated_sms_list[self.index]
+        self.ui.plainTextEdit.setPlainText(self.sms.text)
+    def save(self):
+        self.sms.text = self.ui.plainTextEdit.toPlainText()
+        self.parent.listPrefabricatedSMS(False)
 class ComportDialog(QDialog):
     show_all = False
     def __init__(self, parent):
@@ -9752,6 +9933,45 @@ class Theme:
             if 'light' in theme:
                 invert_secondary = True
             apply_stylesheet(QApplication.instance(), theme=theme, invert_secondary=invert_secondary)
+class AesEncryptionCodeEditDialog(QDialog):
+    def __init__(self, parent, index):
+        super().__init__(parent)
+        self.parent: MainWindow = parent
+        self.ui = Ui_AesEncryptionCodeEditDialog()
+        self.ui.setupUi(self)
+        self.index = index
+        self.setWindowTitle("AES Encryption Code Edit---" + str(index+1))
+        self.ui.buttonBox.accepted.connect(self.save)
+        self.ui.prevBtn.clicked.connect(self.prevBtnClicked)
+        self.ui.nextBtn.clicked.connect(self.nextBtnClicked)
+        self.ui.idCmbx.addItem('Off')
+        self.ui.idCmbx.addItems([str(i+1) for i in range(255)])
+        self.loadData()
+    def loadData(self):
+        self.key = AnyToneMemory.aes_encryption_keys[self.index]
+        self.ui.idCmbx.setCurrentIndex(self.key.id)
+        self.ui.keyTxt.setText(self.key.key)
+    def prevBtnClicked(self):
+        if self.index > 0:
+            self.index -= 1
+            self.loadData()
+        if self.index == 0:
+            self.ui.prevBtn.setDisabled(True)
+        else:
+            self.ui.prevBtn.setDisabled(False)
+    def nextBtnClicked(self):
+        if self.index < len(AnyToneMemory.aes_encryption_keys) - 2:
+            self.index += 1
+            self.loadData()
+        if self.index == len(AnyToneMemory.aes_encryption_keys) - 1:
+            self.ui.prevBtn.setDisabled(True)
+        else:
+            self.ui.prevBtn.setDisabled(False)
+    def save(self):
+        self.key.key = self.ui.keyTxt.text()
+        self.key.key_length = len(self.key.key)
+        self.key.id = self.ui.idCmbx.currentIndex()
+        self.parent.listAesEncryptionKeys(False)
 class RoamingZoneEditDialog(QDialog):
     available_channels_order_type = 0
     available_channel_selected_idx: int = 0

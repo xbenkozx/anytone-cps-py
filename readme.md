@@ -62,7 +62,7 @@ These are not fully tested.
 | BK Image 2 | R/W |
 | 2Tone Encode/Decode | |
 | 5Tone Encode/Decode | |
-| AES Encryption Code | |
+| AES Encryption Code | R/W |
 | Analog Address Book | |
 | APRS | |
 | ARC4 Encryption Code | |

@@ -5,7 +5,11 @@
 - Serial Read/Write Functions:
     - Digital Contact
     - Prefabricated SMS
-- Available Update Notification
+    - AES Encryption Code
+- UI
+    - Prefabricated Edit Dialog
+    - AES Encryption Edit Dialog
+    - Available Update Notification
 
 #### Updated
 - UI Updates and Bug fixes

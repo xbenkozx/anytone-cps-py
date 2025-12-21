@@ -6,7 +6,7 @@ from CPS.Utils import Bit
 # FW/CPS Version Data
 class Constants:
     CPS_VERSION = "0.1"
-    CPS_BUILD_NUMBER = "5"
+    CPS_BUILD_NUMBER = "6"
     RADIO_MODEL = "D878UVII"
     FW_CPS_VERSION = "4.00"
     FW_CPS_VERSION_MODIFIER = 'Alpha'
@@ -428,15 +428,25 @@ class Constants:
 class AesEncryptionCode:
     struct_format = ''
     def __init__(self):
-        pass
+        self.index: int = 0
+        self.id: int = 0
+        self.key: str = ''
+        self.key_length: int = 0
     def encodeStruct(self) -> bytes:
         pass
     def decodeStruct(self, data:bytes):
         pass
     def encode(self) -> bytes:
-        pass
+        data = bytearray(0x30)
+        data[0] = self.id
+        data[0x1:0x21] = bytes.fromhex(self.key.rjust(0x40, '0'))
+        data[0x22] = len(self.key)
+        return data
     def decode(self, data:bytes):
-        pass
+        self.id = data[0]
+        self.key_length = data[0x22]
+        if self.key_length > 0:
+            self.key = data[1:0x21].hex()[-self.key_length:].upper()
 class AlarmSettings:
     def __init__(self):
         self.analog_emergency_alarm: int = 0
@@ -2106,6 +2116,7 @@ class AnyToneMemory:
     auto_repeater_freq_list: list[AutoRepeaterOffsetFrequency] = []
     gps_roaming_list: list[GpsRoaming] = []
     alarm_settings: AlarmSettings = None
+    aes_encryption_keys: list[AesEncryptionCode] = []
     # Device Information
     radio_model: str = 'D878UVII'
     radio_band: str = 'UHF{400 - 480 MHz}\nVHF{136 - 174 MHz}'
@@ -2127,6 +2138,7 @@ class AnyToneMemory:
         AnyToneMemory.initAutoRepeaterOffsetFrequencies()
         AnyToneMemory.initGpsRoaming()
         AnyToneMemory.initAlarmSettings()
+        AnyToneMemory.initAesEncryptionKeys()
         AnyToneMemory.setDefaults()
     def initChannels():
         AnyToneMemory.channels.clear()
@@ -2210,6 +2222,12 @@ class AnyToneMemory:
             AnyToneMemory.gps_roaming_list.append(gps)
     def initAlarmSettings():
         AnyToneMemory.alarm_settings = AlarmSettings()
+    def initAesEncryptionKeys():
+        AnyToneMemory.aes_encryption_keys.clear()
+        for i in range(255):
+            key = AesEncryptionCode()
+            key.index = i
+            AnyToneMemory.aes_encryption_keys.append(key)
     def setDefaults():
         # TODO
         # Common
